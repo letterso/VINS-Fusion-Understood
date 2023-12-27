@@ -57,8 +57,8 @@ add_library(vins_lib
   src/factor/projectionOneFrameTwoCamFactor.cpp
   src/factor/marginalization_factor.cpp
   src/utility/utility.cpp
-  src/ros_visualize/RosVisualization.cpp
-  src/ros_visualize/CameraPoseVisualization.cpp
+  src/utility_ros/RosVisualization.cpp
+  src/utility_ros/CameraPoseVisualization.cpp
 )
 
 target_link_libraries(vins_lib 

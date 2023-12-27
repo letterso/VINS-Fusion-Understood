@@ -19,7 +19,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
 #include "estimator/estimator.h"
-#include "ros_visualize/RosVisualization.h"
+#include "utility_ros/RosVisualization.h"
 
 using namespace std;
 using namespace Eigen;

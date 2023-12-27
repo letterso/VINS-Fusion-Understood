@@ -26,7 +26,7 @@
 
 #include "estimator/estimator.h"
 #include "estimator/parameters.h"
-#include "ros_visualize/RosVisualization.h"
+#include "utility_ros/RosVisualization.h"
 
 // 预留gflag变量
 DEFINE_string(config_path, "./config/vins_xxx.yaml", "配置文件路径");

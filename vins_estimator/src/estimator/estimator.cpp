@@ -8,7 +8,7 @@
  *******************************************************/
 
 #include "estimator.h"
-// #include "../ros_visualize/RosVisualization.h"
+// #include "../utility_ros/RosVisualization.h"
 
 VinsEstimator::VinsEstimator(): f_manager_{Rs} {
     flag_proc_exit_.store(false);

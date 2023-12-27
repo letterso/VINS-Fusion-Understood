@@ -26,27 +26,10 @@ Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fu
 <img src="support_files/refactored_version/Peek_vins_f_manager.gif" style="width:90%;height:auto;" /><br>
 *图4：特征点管理类（class FeatureManager）重构版预览*
 
-<br>
-<!-- ***图2：VINS顶层类（class VinsEstimator）重构版预览***    -->
-<!-- <center>
-    <img src="support_files/refactored_version/Peek_vins_estimator.gif" style="width:80%;height:auto;" /><br>
-    图2：VINS顶层类（class VinsEstimator）重构版预览
-</center> -->
 
 <br>
-<!-- ***图3：特征点光流追踪类（class FeatureTracker）重构版预览***   -->
-<!-- <center>
-    <img src="support_files/refactored_version/Peek_vins_f_tracker.gif" style="width:80%;height:auto;" /><br>
-    图3：特征点光流追踪类（class FeatureTracker）重构版预览
-</center> -->
-
 <br>
-<!-- ***图4：特征点管理类（class FeatureManager）重构版预览***   -->
-<!-- <center>
-    <img src="support_files/refactored_version/Peek_vins_f_manager.gif" style="width:80%;height:auto;" /><br>
-    图4：特征点管理类（class FeatureManager）重构版预览
-</center> -->
-
+<br>
 <br>
 <br>
 <br>

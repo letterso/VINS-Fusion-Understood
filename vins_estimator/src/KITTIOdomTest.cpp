@@ -19,7 +19,7 @@
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include "estimator/estimator.h"
-#include "ros_visualize/RosVisualization.h"
+#include "utility_ros/RosVisualization.h"
 
 using namespace std;
 using namespace Eigen;
