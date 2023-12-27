@@ -11,24 +11,25 @@
 
 #pragma once
 
-#include <ros/assert.h>
-#include <ceres/ceres.h>
+// #include <ros/assert.h>
+
 #include <Eigen/Dense>
+#include <ceres/ceres.h>
+#include <glog/logging.h>
+
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
-class InitialPoseFactor : public ceres::SizedCostFunction<6, 7>
-{
-  public:
-    InitialPoseFactor(const Eigen::Vector3d &_P, const Eigen::Quaterniond &_Q)
-    {
+class InitialPoseFactor : public ceres::SizedCostFunction<6, 7> {
+   public:
+    InitialPoseFactor(const Eigen::Vector3d &_P, const Eigen::Quaterniond &_Q) {
     	init_P = _P;
     	init_Q = _Q;
     	sqrt_info = 1000 * Eigen::Matrix<double, 6, 6>::Identity();
     }
-    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
-    {
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
     	Eigen::Vector3d P(parameters[0][0], parameters[0][1], parameters[0][2]);
     	Eigen::Quaterniond Q(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
 
@@ -53,8 +54,7 @@ class InitialPoseFactor : public ceres::SizedCostFunction<6, 7>
 
     }
 
-    void check(double **parameters)
-    {
+    void check(double **parameters) {
 	    double *res = new double[6];
 	    double **jaco = new double *[1];
 	    jaco[0] = new double[6 * 7];

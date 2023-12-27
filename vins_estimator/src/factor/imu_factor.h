@@ -8,25 +8,26 @@
  *******************************************************/
 
 #pragma once
-#include <ros/assert.h>
-#include <iostream>
-#include <eigen3/Eigen/Dense>
 
+// #include <ros/assert.h>
+
+#include <iostream>
+
+#include <eigen3/Eigen/Dense>
+#include <ceres/ceres.h>
+#include <glog/logging.h>
+
+#include "integration_base.h"
 #include "../utility/utility.h"
 #include "../estimator/parameters.h"
-#include "integration_base.h"
 
-#include <ceres/ceres.h>
 
-class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
-{
-  public:
+class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9> {
+   public:
     IMUFactor() = delete;
-    IMUFactor(IntegrationBase* _pre_integration):pre_integration(_pre_integration)
-    {
-    }
-    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
-    {
+    IMUFactor(IntegrationBase* _pre_integration):pre_integration(_pre_integration) {}
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
 
         Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);
         Eigen::Quaterniond Qi(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
@@ -42,26 +43,25 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
         Eigen::Vector3d Baj(parameters[3][3], parameters[3][4], parameters[3][5]);
         Eigen::Vector3d Bgj(parameters[3][6], parameters[3][7], parameters[3][8]);
 
-//Eigen::Matrix<double, 15, 15> Fd;
-//Eigen::Matrix<double, 15, 12> Gd;
+        //Eigen::Matrix<double, 15, 15> Fd;
+        //Eigen::Matrix<double, 15, 12> Gd;
 
-//Eigen::Vector3d pPj = Pi + Vi * sum_t - 0.5 * g * sum_t * sum_t + corrected_delta_p;
-//Eigen::Quaterniond pQj = Qi * delta_q;
-//Eigen::Vector3d pVj = Vi - g * sum_t + corrected_delta_v;
-//Eigen::Vector3d pBaj = Bai;
-//Eigen::Vector3d pBgj = Bgi;
+        //Eigen::Vector3d pPj = Pi + Vi * sum_t - 0.5 * g * sum_t * sum_t + corrected_delta_p;
+        //Eigen::Quaterniond pQj = Qi * delta_q;
+        //Eigen::Vector3d pVj = Vi - g * sum_t + corrected_delta_v;
+        //Eigen::Vector3d pBaj = Bai;
+        //Eigen::Vector3d pBgj = Bgi;
 
-//Vi + Qi * delta_v - g * sum_dt = Vj;
-//Qi * delta_q = Qj;
+        //Vi + Qi * delta_v - g * sum_dt = Vj;
+        //Qi * delta_q = Qj;
 
-//delta_p = Qi.inverse() * (0.5 * g * sum_dt * sum_dt + Pj - Pi);
-//delta_v = Qi.inverse() * (g * sum_dt + Vj - Vi);
-//delta_q = Qi.inverse() * Qj;
+        //delta_p = Qi.inverse() * (0.5 * g * sum_dt * sum_dt + Pj - Pi);
+        //delta_v = Qi.inverse() * (g * sum_dt + Vj - Vi);
+        //delta_q = Qi.inverse() * Qj;
 
 #if 0
         if ((Bai - pre_integration->linearized_ba).norm() > 0.10 ||
-            (Bgi - pre_integration->linearized_bg).norm() > 0.01)
-        {
+            (Bgi - pre_integration->linearized_bg).norm() > 0.01) {
             pre_integration->repropagate(Bai, Bgi);
         }
 #endif
@@ -74,8 +74,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
         //sqrt_info.setIdentity();
         residual = sqrt_info * residual;
 
-        if (jacobians)
-        {
+        if (jacobians) {
             double sum_dt = pre_integration->sum_dt;
             Eigen::Matrix3d dp_dba = pre_integration->jacobian.template block<3, 3>(O_P, O_BA);
             Eigen::Matrix3d dp_dbg = pre_integration->jacobian.template block<3, 3>(O_P, O_BG);
@@ -87,9 +86,10 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
 
             if (pre_integration->jacobian.maxCoeff() > 1e8 || pre_integration->jacobian.minCoeff() < -1e8)
             {
-                ROS_WARN("numerical unstable in preintegration");
+                LOG(WARNING) << ("numerical unstable in preintegration");
+
                 //std::cout << pre_integration->jacobian << std::endl;
-///                ROS_BREAK();
+                // ROS_BREAK();
             }
 
             if (jacobians[0])
@@ -113,7 +113,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
 
                 if (jacobian_pose_i.maxCoeff() > 1e8 || jacobian_pose_i.minCoeff() < -1e8)
                 {
-                    ROS_WARN("numerical unstable in preintegration");
+                    LOG(WARNING) << ("numerical unstable in preintegration");
                     //std::cout << sqrt_info << std::endl;
                     //ROS_BREAK();
                 }
@@ -126,13 +126,13 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
                 jacobian_speedbias_i.block<3, 3>(O_P, O_BA - O_V) = -dp_dba;
                 jacobian_speedbias_i.block<3, 3>(O_P, O_BG - O_V) = -dp_dbg;
 
-#if 0
-            jacobian_speedbias_i.block<3, 3>(O_R, O_BG - O_V) = -dq_dbg;
-#else
+                #if 0
+                jacobian_speedbias_i.block<3, 3>(O_R, O_BG - O_V) = -dq_dbg;
+                #else
                 //Eigen::Quaterniond corrected_delta_q = pre_integration->delta_q * Utility::deltaQ(dq_dbg * (Bgi - pre_integration->linearized_bg));
                 //jacobian_speedbias_i.block<3, 3>(O_R, O_BG - O_V) = -Utility::Qleft(Qj.inverse() * Qi * corrected_delta_q).bottomRightCorner<3, 3>() * dq_dbg;
                 jacobian_speedbias_i.block<3, 3>(O_R, O_BG - O_V) = -Utility::Qleft(Qj.inverse() * Qi * pre_integration->delta_q).bottomRightCorner<3, 3>() * dq_dbg;
-#endif
+                #endif
 
                 jacobian_speedbias_i.block<3, 3>(O_V, O_V - O_V) = -Qi.inverse().toRotationMatrix();
                 jacobian_speedbias_i.block<3, 3>(O_V, O_BA - O_V) = -dv_dba;
@@ -155,7 +155,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
                 jacobian_pose_j.block<3, 3>(O_P, O_P) = Qi.inverse().toRotationMatrix();
 
 #if 0
-            jacobian_pose_j.block<3, 3>(O_R, O_R) = Eigen::Matrix3d::Identity();
+                jacobian_pose_j.block<3, 3>(O_R, O_R) = Eigen::Matrix3d::Identity();
 #else
                 Eigen::Quaterniond corrected_delta_q = pre_integration->delta_q * Utility::deltaQ(dq_dbg * (Bgi - pre_integration->linearized_bg));
                 jacobian_pose_j.block<3, 3>(O_R, O_R) = Utility::Qleft(corrected_delta_q.inverse() * Qi.inverse() * Qj).bottomRightCorner<3, 3>();

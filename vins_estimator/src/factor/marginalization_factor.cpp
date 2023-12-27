@@ -9,16 +9,14 @@
 
 #include "marginalization_factor.h"
 
-void ResidualBlockInfo::Evaluate()
-{
+void ResidualBlockInfo::Evaluate() {
     residuals.resize(cost_function->num_residuals());
 
     std::vector<int> block_sizes = cost_function->parameter_block_sizes();
     raw_jacobians = new double *[block_sizes.size()];
     jacobians.resize(block_sizes.size());
 
-    for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)
-    {
+    for (int i = 0; i < static_cast<int>(block_sizes.size()); i++) {
         jacobians[i].resize(cost_function->num_residuals(), block_sizes[i]);
         raw_jacobians[i] = jacobians[i].data();
         //dim += block_sizes[i] == 7 ? 6 : block_sizes[i];
@@ -43,8 +41,7 @@ void ResidualBlockInfo::Evaluate()
     //std::cout << saes.eigenvalues() << std::endl;
     //ROS_ASSERT(saes.eigenvalues().minCoeff() >= -1e-6);
 
-    if (loss_function)
-    {
+    if (loss_function) {
         double residual_scaling_, alpha_sq_norm_;
 
         double sq_norm, rho[3];
@@ -55,8 +52,7 @@ void ResidualBlockInfo::Evaluate()
 
         double sqrt_rho1_ = sqrt(rho[1]);
 
-        if ((sq_norm == 0.0) || (rho[2] <= 0.0))
-        {
+        if ((sq_norm == 0.0) || (rho[2] <= 0.0)) {
             residual_scaling_ = sqrt_rho1_;
             alpha_sq_norm_ = 0.0;
         }
@@ -68,8 +64,7 @@ void ResidualBlockInfo::Evaluate()
             alpha_sq_norm_ = alpha / sq_norm;
         }
 
-        for (int i = 0; i < static_cast<int>(parameter_blocks.size()); i++)
-        {
+        for (int i = 0; i < static_cast<int>(parameter_blocks.size()); i++) {
             jacobians[i] = sqrt_rho1_ * (jacobians[i] - alpha_sq_norm_ * residuals * (residuals.transpose() * jacobians[i]));
         }
 
@@ -77,15 +72,13 @@ void ResidualBlockInfo::Evaluate()
     }
 }
 
-MarginalizationInfo::~MarginalizationInfo()
-{
+MarginalizationInfo::~MarginalizationInfo() {
     //ROS_WARN("release marginlizationinfo");
     
     for (auto it = parameter_block_data.begin(); it != parameter_block_data.end(); ++it)
         delete it->second;
 
-    for (int i = 0; i < (int)factors.size(); i++)
-    {
+    for (int i = 0; i < (int)factors.size(); i++) {
 
         delete[] factors[i]->raw_jacobians;
         
@@ -95,36 +88,30 @@ MarginalizationInfo::~MarginalizationInfo()
     }
 }
 
-void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block_info)
-{
+void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block_info) {
     factors.emplace_back(residual_block_info);
 
     std::vector<double *> &parameter_blocks = residual_block_info->parameter_blocks;
     std::vector<int> parameter_block_sizes = residual_block_info->cost_function->parameter_block_sizes();
 
-    for (int i = 0; i < static_cast<int>(residual_block_info->parameter_blocks.size()); i++)
-    {
+    for (int i = 0; i < static_cast<int>(residual_block_info->parameter_blocks.size()); i++) {
         double *addr = parameter_blocks[i];
         int size = parameter_block_sizes[i];
         parameter_block_size[reinterpret_cast<long>(addr)] = size;
     }
 
-    for (int i = 0; i < static_cast<int>(residual_block_info->drop_set.size()); i++)
-    {
+    for (int i = 0; i < static_cast<int>(residual_block_info->drop_set.size()); i++) {
         double *addr = parameter_blocks[residual_block_info->drop_set[i]];
         parameter_block_idx[reinterpret_cast<long>(addr)] = 0;
     }
 }
 
-void MarginalizationInfo::preMarginalize()
-{
-    for (auto it : factors)
-    {
+void MarginalizationInfo::preMarginalize() {
+    for (auto it : factors) {
         it->Evaluate();
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
-        for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)
-        {
+        for (int i = 0; i < static_cast<int>(block_sizes.size()); i++) {
             long addr = reinterpret_cast<long>(it->parameter_blocks[i]);
             int size = block_sizes[i];
             if (parameter_block_data.find(addr) == parameter_block_data.end())
@@ -137,23 +124,18 @@ void MarginalizationInfo::preMarginalize()
     }
 }
 
-int MarginalizationInfo::localSize(int size) const
-{
+int MarginalizationInfo::localSize(int size) const {
     return size == 7 ? 6 : size;
 }
 
-int MarginalizationInfo::globalSize(int size) const
-{
+int MarginalizationInfo::globalSize(int size) const {
     return size == 6 ? 7 : size;
 }
 
-void* ThreadsConstructA(void* threadsstruct)
-{
+void* ThreadsConstructA(void* threadsstruct) {
     ThreadsStruct* p = ((ThreadsStruct*)threadsstruct);
-    for (auto it : p->sub_factors)
-    {
-        for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++)
-        {
+    for (auto it : p->sub_factors) {
+        for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++) {
             int idx_i = p->parameter_block_idx[reinterpret_cast<long>(it->parameter_blocks[i])];
             int size_i = p->parameter_block_size[reinterpret_cast<long>(it->parameter_blocks[i])];
             if (size_i == 7)
@@ -180,21 +162,17 @@ void* ThreadsConstructA(void* threadsstruct)
     return threadsstruct;
 }
 
-void MarginalizationInfo::marginalize()
-{
+void MarginalizationInfo::marginalize() {
     int pos = 0;
-    for (auto &it : parameter_block_idx)
-    {
+    for (auto &it : parameter_block_idx) {
         it.second = pos;
         pos += localSize(parameter_block_size[it.first]);
     }
 
     m = pos;
 
-    for (const auto &it : parameter_block_size)
-    {
-        if (parameter_block_idx.find(it.first) == parameter_block_idx.end())
-        {
+    for (const auto &it : parameter_block_size) {
+        if (parameter_block_idx.find(it.first) == parameter_block_idx.end()) {
             parameter_block_idx[it.first] = pos;
             pos += localSize(it.second);
         }
@@ -202,10 +180,10 @@ void MarginalizationInfo::marginalize()
 
     n = pos - m;
     //ROS_INFO("marginalization, pos: %d, m: %d, n: %d, size: %d", pos, m, n, (int)parameter_block_idx.size());
-    if(m == 0)
-    {
+    if(m == 0) {
         valid = false;
-        printf("unstable tracking...\n");
+        // printf("unstable tracking...\n");
+        LOG(WARNING) << "unstable tracking ... ";
         return;
     }
 
@@ -215,10 +193,8 @@ void MarginalizationInfo::marginalize()
     A.setZero();
     b.setZero();
     /*
-    for (auto it : factors)
-    {
-        for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++)
-        {
+    for (auto it : factors) {
+        for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++) {
             int idx_i = parameter_block_idx[reinterpret_cast<long>(it->parameter_blocks[i])];
             int size_i = localSize(parameter_block_size[reinterpret_cast<long>(it->parameter_blocks[i])]);
             Eigen::MatrixXd jacobian_i = it->jacobians[i].leftCols(size_i);
@@ -246,25 +222,27 @@ void MarginalizationInfo::marginalize()
     TicToc t_thread_summing;
     pthread_t tids[NUM_THREADS];
     ThreadsStruct threadsstruct[NUM_THREADS];
+
     int i = 0;
-    for (auto it : factors)
-    {
+    for (auto it : factors) {
         threadsstruct[i].sub_factors.push_back(it);
         i++;
         i = i % NUM_THREADS;
     }
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
+
+    for (int i = 0; i < NUM_THREADS; i++) {
         TicToc zero_matrix;
         threadsstruct[i].A = Eigen::MatrixXd::Zero(pos,pos);
         threadsstruct[i].b = Eigen::VectorXd::Zero(pos);
         threadsstruct[i].parameter_block_size = parameter_block_size;
         threadsstruct[i].parameter_block_idx = parameter_block_idx;
         int ret = pthread_create( &tids[i], NULL, ThreadsConstructA ,(void*)&(threadsstruct[i]));
-        if (ret != 0)
-        {
-            ROS_WARN("pthread_create error");
-            ROS_BREAK();
+        if (ret != 0) {
+            // ROS_WARN("pthread_create error");
+            // ROS_BREAK();
+
+            LOG(ERROR) << ("pthread_create error");
+            assert(0);
         }
     }
     for( int i = NUM_THREADS - 1; i >= 0; i--)  
@@ -310,17 +288,14 @@ void MarginalizationInfo::marginalize()
     //      (linearized_jacobians.transpose() * linearized_residuals - b).sum());
 }
 
-std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map<long, double *> &addr_shift)
-{
+std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map<long, double *> &addr_shift) {
     std::vector<double *> keep_block_addr;
     keep_block_size.clear();
     keep_block_idx.clear();
     keep_block_data.clear();
 
-    for (const auto &it : parameter_block_idx)
-    {
-        if (it.second >= m)
-        {
+    for (const auto &it : parameter_block_idx) {
+        if (it.second >= m) {
             keep_block_size.push_back(parameter_block_size[it.first]);
             keep_block_idx.push_back(parameter_block_idx[it.first]);
             keep_block_data.push_back(parameter_block_data[it.first]);
@@ -332,11 +307,9 @@ std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map
     return keep_block_addr;
 }
 
-MarginalizationFactor::MarginalizationFactor(MarginalizationInfo* _marginalization_info):marginalization_info(_marginalization_info)
-{
+MarginalizationFactor::MarginalizationFactor(MarginalizationInfo* _marginalization_info):marginalization_info(_marginalization_info) {
     int cnt = 0;
-    for (auto it : marginalization_info->keep_block_size)
-    {
+    for (auto it : marginalization_info->keep_block_size) {
         mutable_parameter_block_sizes()->push_back(it);
         cnt += it;
     }
@@ -344,8 +317,7 @@ MarginalizationFactor::MarginalizationFactor(MarginalizationInfo* _marginalizati
     set_num_residuals(marginalization_info->n);
 };
 
-bool MarginalizationFactor::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
-{
+bool MarginalizationFactor::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
     //printf("internal addr,%d, %d\n", (int)parameter_block_sizes().size(), num_residuals());
     //for (int i = 0; i < static_cast<int>(keep_block_size.size()); i++)
     //{
@@ -357,8 +329,7 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
     int n = marginalization_info->n;
     int m = marginalization_info->m;
     Eigen::VectorXd dx(n);
-    for (int i = 0; i < static_cast<int>(marginalization_info->keep_block_size.size()); i++)
-    {
+    for (int i = 0; i < static_cast<int>(marginalization_info->keep_block_size.size()); i++) {
         int size = marginalization_info->keep_block_size[i];
         int idx = marginalization_info->keep_block_idx[i] - m;
         Eigen::VectorXd x = Eigen::Map<const Eigen::VectorXd>(parameters[i], size);
@@ -376,11 +347,9 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
         }
     }
     Eigen::Map<Eigen::VectorXd>(residuals, n) = marginalization_info->linearized_residuals + marginalization_info->linearized_jacobians * dx;
-    if (jacobians)
-    {
+    if (jacobians) {
 
-        for (int i = 0; i < static_cast<int>(marginalization_info->keep_block_size.size()); i++)
-        {
+        for (int i = 0; i < static_cast<int>(marginalization_info->keep_block_size.size()); i++) {
             if (jacobians[i])
             {
                 int size = marginalization_info->keep_block_size[i], local_size = marginalization_info->localSize(size);

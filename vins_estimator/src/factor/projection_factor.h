@@ -9,16 +9,19 @@
 
 #pragma once
 
-#include <ros/assert.h>
-#include <ceres/ceres.h>
+// #include <ros/assert.h>
+
 #include <Eigen/Dense>
+#include <ceres/ceres.h>
+#include <glog/logging.h>
+
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
-class ProjectionFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1>
-{
-  public:
+/// @brief 这个类实际上没人用，可直接清理掉的那种
+class ProjectionFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1> {
+   public:
     ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j);
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
     void check(double **parameters);

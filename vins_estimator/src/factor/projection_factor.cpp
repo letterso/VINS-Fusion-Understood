@@ -12,8 +12,7 @@
 Eigen::Matrix2d ProjectionFactor::sqrt_info;
 double ProjectionFactor::sum_t;
 
-ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j) : pts_i(_pts_i), pts_j(_pts_j)
-{
+ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j) : pts_i(_pts_i), pts_j(_pts_j) {
 #ifdef UNIT_SPHERE_ERROR
     Eigen::Vector3d b1, b2;
     Eigen::Vector3d a = pts_j.normalized();
@@ -27,8 +26,7 @@ ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::V
 #endif
 };
 
-bool ProjectionFactor::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
-{
+bool ProjectionFactor::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
     TicToc tic_toc;
     Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);
     Eigen::Quaterniond Qi(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
@@ -57,8 +55,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
 
     residual = sqrt_info * residual;
 
-    if (jacobians)
-    {
+    if (jacobians) {
         Eigen::Matrix3d Ri = Qi.toRotationMatrix();
         Eigen::Matrix3d Rj = Qj.toRotationMatrix();
         Eigen::Matrix3d ric = qic.toRotationMatrix();
@@ -80,8 +77,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
 #endif
         reduce = sqrt_info * reduce;
 
-        if (jacobians[0])
-        {
+        if (jacobians[0]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_pose_i(jacobians[0]);
 
             Eigen::Matrix<double, 3, 6> jaco_i;
@@ -92,8 +88,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
             jacobian_pose_i.rightCols<1>().setZero();
         }
 
-        if (jacobians[1])
-        {
+        if (jacobians[1]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_pose_j(jacobians[1]);
 
             Eigen::Matrix<double, 3, 6> jaco_j;
@@ -103,8 +98,8 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
             jacobian_pose_j.leftCols<6>() = reduce * jaco_j;
             jacobian_pose_j.rightCols<1>().setZero();
         }
-        if (jacobians[2])
-        {
+
+        if (jacobians[2]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_ex_pose(jacobians[2]);
             Eigen::Matrix<double, 3, 6> jaco_ex;
             jaco_ex.leftCols<3>() = ric.transpose() * (Rj.transpose() * Ri - Eigen::Matrix3d::Identity());
@@ -114,8 +109,8 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
             jacobian_ex_pose.leftCols<6>() = reduce * jaco_ex;
             jacobian_ex_pose.rightCols<1>().setZero();
         }
-        if (jacobians[3])
-        {
+
+        if (jacobians[3]) {
             Eigen::Map<Eigen::Vector2d> jacobian_feature(jacobians[3]);
 #if 1
             jacobian_feature = reduce * ric.transpose() * Rj.transpose() * Ri * ric * pts_i * -1.0 / (inv_dep_i * inv_dep_i);
@@ -129,8 +124,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     return true;
 }
 
-void ProjectionFactor::check(double **parameters)
-{
+void ProjectionFactor::check(double **parameters) {
     double *res = new double[15];
     double **jaco = new double *[4];
     jaco[0] = new double[2 * 7];
@@ -184,8 +178,7 @@ void ProjectionFactor::check(double **parameters)
 
     const double eps = 1e-6;
     Eigen::Matrix<double, 2, 19> num_jacobian;
-    for (int k = 0; k < 19; k++)
-    {
+    for (int k = 0; k < 19; k++) {
         Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);
         Eigen::Quaterniond Qi(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
 

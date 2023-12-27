@@ -1,4 +1,59 @@
+# VINS-Fusion-Understood
+
+Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fusion, codes refactored in Google style, reliable comments on almost every line, necessary modification on confusing member names, ROS code decoupled, glog embedded.
+
+欢迎来到 **VINS-Fusion-Understood**，一个人人可懂的VINS-Fusion版本。
+
+
+
+在这里，我们对[原版VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)的代码风格进行了重构，不仅包括【1】一些必要的Google风格变量重命名/缩进/大括号位置调整，更重要的是，【2】我们按照含义聚类和逻辑顺序重新排列了几乎所有的成员函数和数据成员，【3】并添加了详尽的、经得起推敲的注释。由此，我们希望VINS-Fusion-Understood能够做到代码即文档——让读代码就像读文档一样轻松。此外，【4】我们还在VINS算法中剥离了所有的ROS代码，【5】并引入了glog作为日志工具，以方便调试和保存日志文件。这些改动都有助于您将VINS方便地移植到其它通信框架或计算平台上。【6】未来，我们还会引入ui窗口以绘制VINS系统内含的状态信息，使VINS可视化。以上所有重构工作，您都可以从本仓库的代码中看到。您也可以从下方的动图中对VINS-Fusion-Understood的代码风格和注释内容窥见一二。
+
+尽管做了以上重构，但**VINS-Fusion-Understood的代码内容严格忠实于原版，在精度和运行性能上也绝无二致**，下图是原版和本版本的运行结果对比。如果您对VINS-Fusion的源码尚不了解，这将是您上手VINS最合适的版本或参考。
+
+> *注1：为了和VINS-Fusion原版不至于差异太大，大部分函数并没有做重命名，除非原版函数的命名让人费解 —— 比如我们把原版 `Estimator::relativePose()` 重命名为了 `VinsEstimator::searchRelativePose()`，把原版`Estimator::vector2double()`重命名为了`VinsEstimator::StateToCeresParam()`，把原版`FeatureManager::getCount()`重命名为了`FeatureManager::getRobustFeatureCount()`。*   
+> *注2：目前，我们仅对VINS-Fusion中精华的vins_estimator模块完成了重构，其它部分留作将来TODO（若有需要）。*   
+
+
+<img src="support_files/refactored_version/left_official_vs_right.jpg" style="width:90%;height:auto;" /><br>
+*图1：运行结果对比，左为官方版，右为本仓库版*
+
+<img src="support_files/refactored_version/Peek_vins_estimator.gif" style="width:90%;height:auto;" /><br>
+*图2：VINS顶层类（class VinsEstimator）重构版预览*
+
+<img src="support_files/refactored_version/Peek_vins_f_tracker.gif" style="width:90%;height:auto;" /><br>
+*图3：特征点光流追踪类（class FeatureTracker）重构版预览*
+
+<img src="support_files/refactored_version/Peek_vins_f_manager.gif" style="width:90%;height:auto;" /><br>
+*图4：特征点管理类（class FeatureManager）重构版预览*
+
+<br>
+<!-- ***图2：VINS顶层类（class VinsEstimator）重构版预览***    -->
+<!-- <center>
+    <img src="support_files/refactored_version/Peek_vins_estimator.gif" style="width:80%;height:auto;" /><br>
+    图2：VINS顶层类（class VinsEstimator）重构版预览
+</center> -->
+
+<br>
+<!-- ***图3：特征点光流追踪类（class FeatureTracker）重构版预览***   -->
+<!-- <center>
+    <img src="support_files/refactored_version/Peek_vins_f_tracker.gif" style="width:80%;height:auto;" /><br>
+    图3：特征点光流追踪类（class FeatureTracker）重构版预览
+</center> -->
+
+<br>
+<!-- ***图4：特征点管理类（class FeatureManager）重构版预览***   -->
+<!-- <center>
+    <img src="support_files/refactored_version/Peek_vins_f_manager.gif" style="width:80%;height:auto;" /><br>
+    图4：特征点管理类（class FeatureManager）重构版预览
+</center> -->
+
+<br>
+<br>
+<br>
+
+
 # VINS-Fusion
+
 ## An optimization-based multi-sensor state estimator
 
 <img src="https://github.com/HKUST-Aerial-Robotics/VINS-Fusion/blob/master/support_files/image/vins_logo.png" width = 55% height = 55% div align=left />

@@ -24,7 +24,7 @@
 #include <queue>
 #include <mutex>
 
-GlobalOptimization globalEstimator;
+GlobalOptimization global_estimator;
 ros::Publisher pub_global_odometry, pub_global_path, pub_car;
 nav_msgs::Path *global_path;
 double last_vio_t = -1;
@@ -89,7 +89,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
     vio_q.x() = pose_msg->pose.pose.orientation.x;
     vio_q.y() = pose_msg->pose.pose.orientation.y;
     vio_q.z() = pose_msg->pose.pose.orientation.z;
-    globalEstimator.inputOdom(t, vio_t, vio_q);
+    global_estimator.inputOdom(t, vio_t, vio_q);
 
 
     m_buf.lock();
@@ -111,7 +111,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
                 pos_accuracy = 1;
             //printf("receive covariance %lf \n", pos_accuracy);
             //if(GPS_msg->status.status > 8)
-                globalEstimator.inputGPS(t, latitude, longitude, altitude, pos_accuracy);
+                global_estimator.inputGPS(t, latitude, longitude, altitude, pos_accuracy);
             gpsQueue.pop();
             break;
         }
@@ -124,7 +124,7 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 
     Eigen::Vector3d global_t;
     Eigen:: Quaterniond global_q;
-    globalEstimator.getGlobalOdom(global_t, global_q);
+    global_estimator.getGlobalOdom(global_t, global_q);
 
     nav_msgs::Odometry odometry;
     odometry.header = pose_msg->header;
@@ -160,10 +160,10 @@ void vio_callback(const nav_msgs::Odometry::ConstPtr &pose_msg)
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "globalEstimator");
+    ros::init(argc, argv, "global_estimator");
     ros::NodeHandle n("~");
 
-    global_path = &globalEstimator.global_path;
+    global_path = &global_estimator.global_path;
 
     ros::Subscriber sub_GPS = n.subscribe("/gps", 100, GPS_callback);
     ros::Subscriber sub_vio = n.subscribe("/vins_estimator/odometry", 100, vio_callback);

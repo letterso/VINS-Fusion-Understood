@@ -11,25 +11,25 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <opencv2/opencv.hpp>
 #include <cmath>
 #include <string>
+#include <opencv2/opencv.hpp>
+#include <glog/logging.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include "estimator/estimator.h"
-#include "utility/visualization.h"
+#include "ros_visualize/RosVisualization.h"
 
 using namespace std;
 using namespace Eigen;
 
-Estimator estimator;
+VinsEstimator estimator;
 
 Eigen::Matrix3d c1Rc0, c0Rc1;
 Eigen::Vector3d c1Tc0, c0Tc1;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	ros::init(argc, argv, "vins_estimator");
 	ros::NodeHandle n("~");
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);

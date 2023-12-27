@@ -11,24 +11,25 @@
 
 #pragma once
 
-#include <ros/assert.h>
-#include <ceres/ceres.h>
+// #include <ros/assert.h>
+
 #include <Eigen/Dense>
+#include <ceres/ceres.h>
+#include <glog/logging.h>
+
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
-class InitialBiasFactor : public ceres::SizedCostFunction<6, 9>
-{
-  public:
-    InitialBiasFactor(const Eigen::Vector3d &_Ba, const Eigen::Vector3d &_Bg)
-    {
+class InitialBiasFactor : public ceres::SizedCostFunction<6, 9> {
+   public:
+    InitialBiasFactor(const Eigen::Vector3d &_Ba, const Eigen::Vector3d &_Bg) {
     	init_Ba = _Ba;
     	init_Bg = _Bg;
     	sqrt_info = 1.0 / (0.001) * Eigen::Matrix<double, 6, 6>::Identity();
     }
-    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
-    {
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
     	Eigen::Vector3d Ba(parameters[0][3], parameters[0][4], parameters[0][5]);
     	Eigen::Vector3d Bg(parameters[0][6], parameters[0][7], parameters[0][8]);
 

@@ -14,11 +14,12 @@
 Eigen::Matrix2d ProjectionTwoFrameOneCamFactor::sqrt_info;
 double ProjectionTwoFrameOneCamFactor::sum_t;
 
-ProjectionTwoFrameOneCamFactor::ProjectionTwoFrameOneCamFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j, 
-                                       const Eigen::Vector2d &_velocity_i, const Eigen::Vector2d &_velocity_j,
-                                       const double _td_i, const double _td_j) : 
-                                       pts_i(_pts_i), pts_j(_pts_j), 
-                                       td_i(_td_i), td_j(_td_j)
+ProjectionTwoFrameOneCamFactor::ProjectionTwoFrameOneCamFactor(
+    const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j, 
+    const Eigen::Vector2d &_velocity_i, const Eigen::Vector2d &_velocity_j,
+    const double _td_i, const double _td_j) 
+    : pts_i(_pts_i), pts_j(_pts_j)
+    , td_i(_td_i), td_j(_td_j)
 {
     velocity_i.x() = _velocity_i.x();
     velocity_i.y() = _velocity_i.y();
@@ -75,8 +76,7 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
 
     residual = sqrt_info * residual;
 
-    if (jacobians)
-    {
+    if (jacobians) {
         Eigen::Matrix3d Ri = Qi.toRotationMatrix();
         Eigen::Matrix3d Rj = Qj.toRotationMatrix();
         Eigen::Matrix3d ric = qic.toRotationMatrix();
@@ -98,8 +98,7 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
 #endif
         reduce = sqrt_info * reduce;
 
-        if (jacobians[0])
-        {
+        if (jacobians[0]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_pose_i(jacobians[0]);
 
             Eigen::Matrix<double, 3, 6> jaco_i;
@@ -110,8 +109,7 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
             jacobian_pose_i.rightCols<1>().setZero();
         }
 
-        if (jacobians[1])
-        {
+        if (jacobians[1]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_pose_j(jacobians[1]);
 
             Eigen::Matrix<double, 3, 6> jaco_j;
@@ -121,8 +119,7 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
             jacobian_pose_j.leftCols<6>() = reduce * jaco_j;
             jacobian_pose_j.rightCols<1>().setZero();
         }
-        if (jacobians[2])
-        {
+        if (jacobians[2]) {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_ex_pose(jacobians[2]);
             Eigen::Matrix<double, 3, 6> jaco_ex;
             jaco_ex.leftCols<3>() = ric.transpose() * (Rj.transpose() * Ri - Eigen::Matrix3d::Identity());
@@ -132,13 +129,11 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
             jacobian_ex_pose.leftCols<6>() = reduce * jaco_ex;
             jacobian_ex_pose.rightCols<1>().setZero();
         }
-        if (jacobians[3])
-        {
+        if (jacobians[3]) {
             Eigen::Map<Eigen::Vector2d> jacobian_feature(jacobians[3]);
             jacobian_feature = reduce * ric.transpose() * Rj.transpose() * Ri * ric * pts_i_td * -1.0 / (inv_dep_i * inv_dep_i);
         }
-        if (jacobians[4])
-        {
+        if (jacobians[4]) {
             Eigen::Map<Eigen::Vector2d> jacobian_td(jacobians[4]);
             jacobian_td = reduce * ric.transpose() * Rj.transpose() * Ri * ric * velocity_i / inv_dep_i * -1.0  +
                           sqrt_info * velocity_j.head(2);
@@ -149,8 +144,7 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
     return true;
 }
 
-void ProjectionTwoFrameOneCamFactor::check(double **parameters)
-{
+void ProjectionTwoFrameOneCamFactor::check(double **parameters) {
     double *res = new double[2];
     double **jaco = new double *[5];
     jaco[0] = new double[2 * 7];
@@ -210,8 +204,7 @@ void ProjectionTwoFrameOneCamFactor::check(double **parameters)
 
     const double eps = 1e-6;
     Eigen::Matrix<double, 2, 20> num_jacobian;
-    for (int k = 0; k < 20; k++)
-    {
+    for (int k = 0; k < 20; k++) {
         Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);
         Eigen::Quaterniond Qi(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
 

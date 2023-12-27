@@ -15,19 +15,19 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <glog/logging.h>
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
 #include "estimator/estimator.h"
-#include "utility/visualization.h"
+#include "ros_visualize/RosVisualization.h"
 
 using namespace std;
 using namespace Eigen;
 
-Estimator estimator;
+VinsEstimator estimator;
 ros::Publisher pubGPS;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	ros::init(argc, argv, "vins_estimator");
 	ros::NodeHandle n("~");
 	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
