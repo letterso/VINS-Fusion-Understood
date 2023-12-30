@@ -9,9 +9,6 @@
 
 #pragma once
 
-// #include <ros/ros.h>
-// #include <ros/console.h>
-
 #include <pthread.h>
 
 #include <cstdlib>

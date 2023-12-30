@@ -8,7 +8,6 @@
  *******************************************************/
 
 #include "estimator.h"
-// #include "../utility_ros/RosVisualization.h"
 
 VinsEstimator::VinsEstimator(): f_manager_{Rs} {
     flag_proc_exit_.store(false);
@@ -258,6 +257,10 @@ void VinsEstimator::processMeasurements() {
                     }
                     std::chrono::milliseconds dura(5);
                     std::this_thread::sleep_for(dura);
+                    if (flag_proc_exit_.load()) {
+                        LOG(INFO) << "proc meas loop terminating ... ";
+                        return;
+                    }
                 }
             }
             mtxBuf.lock();

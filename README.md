@@ -14,17 +14,20 @@ Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fu
 > *注2：目前，我们仅对VINS-Fusion中精华的vins_estimator模块完成了重构，其它部分留作将来TODO（若有需要）。*   
 
 
-<img src="support_files/refactored_version/left_official_vs_right.jpg" style="width:90%;height:auto;" /><br>
+<img src="support_files/understood_version/left_official_vs_right.jpg" style="width:90%;height:auto;" /><br>
 *图1：运行结果对比，左为官方版，右为本仓库版*
 
-<img src="support_files/refactored_version/Peek_vins_estimator.gif" style="width:90%;height:auto;" /><br>
+<img src="support_files/understood_version/Peek_vins_estimator.gif" style="width:90%;height:auto;" /><br>
 *图2：VINS顶层类（class VinsEstimator）重构版预览*
 
-<img src="support_files/refactored_version/Peek_vins_f_tracker.gif" style="width:90%;height:auto;" /><br>
+<img src="support_files/understood_version/Peek_vins_f_tracker.gif" style="width:90%;height:auto;" /><br>
 *图3：特征点光流追踪类（class FeatureTracker）重构版预览*
 
-<img src="support_files/refactored_version/Peek_vins_f_manager.gif" style="width:90%;height:auto;" /><br>
+<img src="support_files/understood_version/Peek_vins_f_manager.gif" style="width:90%;height:auto;" /><br>
 *图4：特征点管理类（class FeatureManager）重构版预览*
+
+<img src="support_files/understood_version/with_pangolin_01.jpg" style="width:60%;height:auto;" /><br>
+*图5：Vins-Fusion-Understood运行界面*
 
 
 <br>

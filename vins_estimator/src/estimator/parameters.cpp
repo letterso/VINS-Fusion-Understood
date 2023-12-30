@@ -16,6 +16,8 @@ std::string EX_CALIB_RESULT_PATH;
 std::string VINS_RESULT_PATH;
 std::string OUTPUT_FOLDER;
 
+bool ENABLE_UI = false;
+
 int ROLLING_SHUTTER;
 int ROW, COL;
 int NUM_OF_CAM;

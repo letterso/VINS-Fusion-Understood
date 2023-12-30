@@ -26,6 +26,7 @@
 
 #include "estimator/estimator.h"
 #include "estimator/parameters.h"
+#include "ui_pangolin/ui_window.h"
 #include "utility_ros/RosVisualization.h"
 
 // 预留gflag变量
@@ -34,6 +35,7 @@ DEFINE_double(config_param, 0.0, "配置参数");
 DEFINE_bool(config_option, true, "配置选项");
 
 std::unique_ptr<VinsEstimator> vins_estimator_;
+std::unique_ptr<UiWindow> ui_window_;
 
 // queue<sensor_msgs::ImuConstPtr> imu_buf;
 // queue<sensor_msgs::PointCloudConstPtr> feature_buf;
@@ -41,8 +43,7 @@ queue<sensor_msgs::ImageConstPtr> img0_buf;
 queue<sensor_msgs::ImageConstPtr> img1_buf;
 std::mutex mtx_buf;
 
-std::atomic<bool> flag_exit;
-
+std::atomic<bool> flag_exit_sync;
 
 void Image0Callback(const sensor_msgs::ImageConstPtr &img_msg) {
     mtx_buf.lock();
@@ -79,7 +80,7 @@ cv::Mat RosMsgToCvMat(const sensor_msgs::ImageConstPtr &img_msg) {
 // extract images with same timestamp from two topics
 void SyncImageMsgs() {
     while(1) {
-        if (flag_exit.load()) {
+        if (flag_exit_sync.load()) {
             LOG(INFO) << "msgs loop terminating ...";
             break;
         }
@@ -147,6 +148,9 @@ void ImuCallback(const sensor_msgs::ImuConstPtr &imu_msg) {
     Vector3d acc(dx, dy, dz);
     Vector3d gyr(rx, ry, rz);
     vins_estimator_->inputIMU(t, acc, gyr);
+    if (ui_window_) {
+        ui_window_->UpdateRawImu(ImuData(t, acc, gyr));
+    }
     return;
 }
 
@@ -226,11 +230,11 @@ int main(int argc, char **argv) {
     // google::ParseCommandLineFlags(&argc, &argv, true); //预留
 
     ros::init(argc, argv, "vins_estimator");
-    ros::NodeHandle n("~");
+    ros::NodeHandle nh_("~");
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
 
-    if(argc != 2) {
-        printf("please intput: rosrun vins vins_node [config file] \n"
+    if(argc < 2) {
+        printf("please intput: rosrun vins vins_node [config file] [ui option] \n"
                "for example: rosrun vins vins_node "
                "~/catkin_ws/src/VINS-Fusion/config/euroc/euroc_stereo_imu_config.yaml \n");
         return 1;
@@ -238,13 +242,17 @@ int main(int argc, char **argv) {
 
     string config_file = argv[1];
     printf("config_file: %s\n", argv[1]);
-
     readParameters(config_file);
+
+    if (argc == 3) {
+        string ui_option = argv[2];
+        printf("ui_option: %s\n", ui_option);
+        ENABLE_UI = true;
+    }
+
+    registerPub(nh_);
     vins_estimator_.reset(new VinsEstimator);
     vins_estimator_->setParameter();
-    flag_exit.store(false);
-
-    registerPub(n);
     vins_estimator_->setLatestOdometryHandle(pubLatestOdometry);
     vins_estimator_->setTrackingImageHandle(pubTrackImage);
     vins_estimator_->setStatisticsHandle(printStatistics);
@@ -256,8 +264,18 @@ int main(int argc, char **argv) {
             pubPointCloud(estimator);
             pubKeyframe(estimator);
             pubTF(estimator);
+            if (ui_window_) {
+                ui_window_->UpdateVinsStatus(estimator);
+            }
         }
     );
+
+    if (ENABLE_UI) {
+        ui_window_.reset(new UiWindow);
+        ui_window_->Init();
+    }
+
+    flag_exit_sync.store(false);
 
 #ifdef EIGEN_DONT_PARALLELIZE
     // ROS_DEBUG("EIGEN_DONT_PARALLELIZE");
@@ -269,23 +287,23 @@ int main(int argc, char **argv) {
 
     ros::Subscriber sub_imu;
     if(USE_IMU) {
-        sub_imu = n.subscribe(IMU_TOPIC, 2000, ImuCallback, ros::TransportHints().tcpNoDelay());
+        sub_imu = nh_.subscribe(IMU_TOPIC, 2000, ImuCallback, ros::TransportHints().tcpNoDelay());
     }
-    ros::Subscriber sub_feature = n.subscribe("/feature_tracker/feature", 2000, FeatureCallback);
-    ros::Subscriber sub_img0 = n.subscribe(IMAGE0_TOPIC, 100, Image0Callback);
+    ros::Subscriber sub_feature = nh_.subscribe("/feature_tracker/feature", 2000, FeatureCallback);
+    ros::Subscriber sub_img0 = nh_.subscribe(IMAGE0_TOPIC, 100, Image0Callback);
     ros::Subscriber sub_img1;
     if(STEREO) {
-        sub_img1 = n.subscribe(IMAGE1_TOPIC, 100, Image1Callback);
+        sub_img1 = nh_.subscribe(IMAGE1_TOPIC, 100, Image1Callback);
     }
-    ros::Subscriber sub_restart = n.subscribe("/vins_restart", 100, RestartCallback);
-    ros::Subscriber sub_imu_switch = n.subscribe("/vins_imu_switch", 100, ImuSwitchCallback);
-    ros::Subscriber sub_cam_switch = n.subscribe("/vins_cam_switch", 100, CamSwitchCallback);
+    ros::Subscriber sub_restart = nh_.subscribe("/vins_restart", 100, RestartCallback);
+    ros::Subscriber sub_imu_switch = nh_.subscribe("/vins_imu_switch", 100, ImuSwitchCallback);
+    ros::Subscriber sub_cam_switch = nh_.subscribe("/vins_cam_switch", 100, CamSwitchCallback);
 
     std::thread sync_thread{SyncImageMsgs};
     ros::spin();
 
     LOG(INFO) << "program exit ...";
-    flag_exit.store(true);
+    flag_exit_sync.store(true);
     sync_thread.join();
     LOG(INFO) << "sync msgs thread joined.";
     return 0;

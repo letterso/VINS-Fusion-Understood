@@ -37,6 +37,8 @@ extern std::string EX_CALIB_RESULT_PATH;
 extern std::string VINS_RESULT_PATH;
 extern std::string OUTPUT_FOLDER;
 
+extern bool ENABLE_UI;
+
 extern int ROLLING_SHUTTER;                 //使用的相机是否是卷帘快门
 extern int ROW, COL;                        //如名
 extern int NUM_OF_CAM;                      //如名

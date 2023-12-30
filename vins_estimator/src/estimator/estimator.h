@@ -19,9 +19,6 @@
 #include <map>
 #include <functional>
 
-// #include <std_msgs/Header.h>    // TODO: remove ros.
-// #include <std_msgs/Float32.h>
-
 #include <ceres/ceres.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
@@ -48,11 +45,8 @@
 namespace vinslitex {
 } // namespace vinslitex
 
-namespace vinsfusion {
-} // namespace vinsfusion
-
-namespace vinsproject {
-} // namespace vinsproject
+namespace VinsNS {
+} // namespace VinsNS
 
 
 /** ###### VINS工作状态关键指标，可UI追踪 ######

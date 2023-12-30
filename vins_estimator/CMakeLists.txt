@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(vins)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++14") #11改为14以支持pangolin
 #-DEIGEN_USE_MKL_ALL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
@@ -26,9 +26,19 @@ message(WARNING "## OpenCV_LIBS         : " ${OpenCV_LIBS})
 find_package(Ceres REQUIRED)
 
 find_package(Glog REQUIRED)
-# include_directories(${Glog_INCLUDE_DIRS})
 
-# include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS})
+find_package(Pangolin REQUIRED) #QUIET
+message(WARNING "## Pangolin INCLUDE DIRS: " ${Pangolin_INCLUDE_DIRS})
+message(WARNING "## Pangolin LIBRARIES   : " ${Pangolin_LIBRARIES})
+message(WARNING "## Pangolin FOUND       : " ${Pangolin_FOUND})
+# if(${Pangolin_FOUND}) 
+#   message(WARNING "## yes, found Pangolin!")
+  # add_definitions(-DUSE_PANGOLIN)
+
+# if (Pangolin_FOUND) {
+#   message(WARNING "## yes, found Pangolin!")
+#   add_definitions(-DUSE_PANGOLIN)
+# }
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
@@ -38,6 +48,7 @@ include_directories(
   ${CERES_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${Glog_INCLUDE_DIRS}
+  ${Pangolin_INCLUDE_DIRS}
 )
 
 catkin_package()
@@ -59,12 +70,22 @@ add_library(vins_lib
   src/utility/utility.cpp
   src/utility_ros/RosVisualization.cpp
   src/utility_ros/CameraPoseVisualization.cpp
+  src/ui_pangolin/ui_window_impl.cpp
+  src/ui_pangolin/ui_window.cpp
 )
+
+# if (${Pangolin_FOUND}) {
+#     add_library(vins_lib
+#       src/ui_pangolin/ui_window_impl.cpp
+#       src/ui_pangolin/ui_window.cpp
+#   )
+# }
 
 target_link_libraries(vins_lib 
   ${catkin_LIBRARIES} 
   ${OpenCV_LIBS} 
   ${CERES_LIBRARIES}
+  ${Pangolin_LIBRARIES}
 )
 
 

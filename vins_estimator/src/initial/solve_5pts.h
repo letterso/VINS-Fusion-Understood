@@ -17,8 +17,6 @@
 #include <eigen3/Eigen/Dense>
 #include <glog/logging.h>
 
-// #include <ros/console.h>
-
 using namespace std;
 using namespace Eigen;
 

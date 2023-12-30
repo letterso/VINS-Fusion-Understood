@@ -11,8 +11,6 @@
 
 #pragma once
 
-// #include <ros/assert.h>
-
 #include <ceres/ceres.h>
 #include <Eigen/Dense>
 #include <glog/logging.h>
