@@ -30,7 +30,7 @@ class UiWindow {
     void UpdateVioState(const VioState& vio_state);
     void UpdateRunningStatus(const RunningStatus& status);
 
-    /// @brief AllIn1方式更新ui信息
+    /// @brief AllInOne方式更新ui
     void UpdateVinsStatus(const VinsEstimator& estimator);
 
    private:

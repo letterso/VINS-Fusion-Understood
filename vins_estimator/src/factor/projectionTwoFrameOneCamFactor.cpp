@@ -65,7 +65,8 @@ bool ProjectionTwoFrameOneCamFactor::Evaluate(double const *const *parameters, d
     Eigen::Vector3d pts_w = Qi * pts_imu_i + Pi;
     Eigen::Vector3d pts_imu_j = Qj.inverse() * (pts_w - Pj);
     Eigen::Vector3d pts_camera_j = qic.inverse() * (pts_imu_j - tic);
-    Eigen::Map<Eigen::Vector2d> residual(residuals);
+    Eigen::Map<Eigen::Vector2d> residual(residuals); 
+    /*不难发现，这里这个residual就是2D像素坐标误差，因此还是图像平面的重投影误差，而非单位球面误差*/
 
 #ifdef UNIT_SPHERE_ERROR 
     residual =  tangent_base * (pts_camera_j.normalized() - pts_j_td.normalized());

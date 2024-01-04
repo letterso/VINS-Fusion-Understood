@@ -26,7 +26,7 @@ const double FOCAL_LENGTH = 460.0;  //系统常量
 const int WINDOW_SIZE = 10;         //系统常量：滑窗规模
 const int NUM_OF_F = 1000;          //系统常量：滑窗中feature数量上限
 
-// #define UNIT_SPHERE_ERROR        //计算重投影误差的一个option，作者已关闭
+// #define UNIT_SPHERE_ERROR        //在单位球面（而非成像平面）上计算重投影误差，详见论文；作者关闭了这个宏
 
 // ========================== configurable system params ========================== //
 

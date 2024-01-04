@@ -22,6 +22,7 @@
 
 const int NUM_THREADS = 4;
 
+/// @brief 边缘化操作中，与被边缘化帧相关联的一个因子
 struct ResidualBlockInfo {
     ResidualBlockInfo(ceres::CostFunction *_cost_function, ceres::LossFunction *_loss_function, 
                         std::vector<double *> _parameter_blocks, std::vector<int> _drop_set)
@@ -52,9 +53,12 @@ struct ThreadsStruct {
     std::unordered_map<long, int> parameter_block_idx; //local size
 };
 
+
+/// @brief 边缘化操作的核心类，收集被边缘化帧及其关联的帧、特征、因子，执行边缘化操作，获得新的边缘化因子。
+/// XXX: 个人觉得，这个类命名为 MarginalizationManager 不香吗？
 class MarginalizationInfo {
    public:
-    MarginalizationInfo(){valid = true;};
+    MarginalizationInfo(){valid = true;}
     ~MarginalizationInfo();
     int localSize(int size) const;
     int globalSize(int size) const;
@@ -81,6 +85,8 @@ class MarginalizationInfo {
 
 };
 
+
+/// @brief 边缘化因子，没毛病
 class MarginalizationFactor : public ceres::CostFunction {
    public:
     MarginalizationFactor(MarginalizationInfo* _marginalization_info);

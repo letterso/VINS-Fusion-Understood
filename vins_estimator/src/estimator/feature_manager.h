@@ -70,7 +70,7 @@ class FeaturePerId {
    public:
     vector<FeaturePerFrame> feature_per_frame; /*特征点在不同帧中的观测描述*/
     const int feature_id;
-    int start_frame;
+    int start_frame; /*注意这个frame索引是动态调整的，总是与滑窗帧的序号保持一致*/
     int used_num;
     double estimated_depth;
     int solve_flag; /* 0 haven't solve yet; 1 solve succ; 2 solve fail */
@@ -104,10 +104,10 @@ class FeatureManager {
     /// @brief [原getFeatureCount]统计被跟踪到的次数>=4次的特征点的数量
     int getRobustFeatureCount();
 
-    /// @brief [原getDepthVector]统计被跟踪到的次数>=4次的特征点的深度信息，给到外部
+    /// @brief [原getDepthVector]统计被跟踪到的次数>=4次的特征点的【逆深度】信息，给到外部
     VectorXd getRobustFeatureDepthVec();
 
-    /// @brief [原setDepth]接上个函数，对跟踪次数>=4次的特征点，外部（VIO）做完深度估计后，将结果返回
+    /// @brief [原setDepth]接上个函数，对跟踪次数>=4次的特征点，外部（VIO）做完【逆深度】估计后，将结果返回
     void setRobustFeatureDepth(const VectorXd &x);
 
     /// @brief [原clearDepth]清空持有的全部特征点的深度信息 
@@ -121,22 +121,26 @@ class FeatureManager {
     /// @param ric 外参旋转
     void triangulate(int frameCnt, Vector3d Ps[], Matrix3d Rs[], Vector3d tic[], Matrix3d ric[]);
 
-    /// @brief 功能函数，通过位姿和像素坐标，计算单个特征点的深度值
+    /// @brief 功能函数，顾名思义，基于cam位姿和像素坐标，通过三角化，估计特征的3D坐标
     void triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
                           Eigen::Vector2d &point0, Eigen::Vector2d &point1, Eigen::Vector3d &point_3d);
 
     /// @brief xxx
     void initFramePoseByPnP(int frameCnt, Vector3d Ps[], Matrix3d Rs[], Vector3d tic[], Matrix3d ric[]);
 
+    /// @brief xxx
     bool solvePoseByPnP(Eigen::Matrix3d &R_initial, Eigen::Vector3d &P_initial, 
                         vector<cv::Point2f> &pts2D, vector<cv::Point3f> &pts3D);
 
-    /// @brief xxx
+    /// @brief 滑窗中移除某个新帧，在新帧中第一次观测到的特征要清理掉
+    void removeFront(int _frameCount);
+
+    /// @brief 滑窗中移除了最老帧，因此所有feature的frame index要减1
+    void removeBack();
+
+    /// @brief 滑窗中移除了最老帧，更新frame index，并将持有特征的深度信息转移给次老帧
     void removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, 
                               Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
-
-    void removeBack();
-    void removeFront(int _frameCount);
 
     /// @brief xxx
     void removeOutlier(set<int> &outlierIndex);

@@ -69,7 +69,7 @@ bool UiWindowImpl::Init(const std::string& win_name) {
     dlog_state_grav_.SetLabels(std::vector<std::string>{"grav_x", "grav_y", "grav_z"});
     dlog_lio_confi_.SetLabels(std::vector<std::string>{"match_confidence"});
 
-    dlog_time_usage_.SetLabels(std::vector<std::string>{"all(ms)", "lio(ms)", "ikf(ms)"});
+    dlog_time_usage_.SetLabels(std::vector<std::string>{"lkTrack(ms)", "procMeas(ms)", "Visualz(ms)", "Sum(ms)"});
 
     return true;
 
@@ -538,20 +538,34 @@ bool UiWindowImpl::UpdateUiVioState() {
     }
 
     // 读写访问中间变量，然后释放锁
+    VioState state_show;
     {
         std::lock_guard<std::mutex> lock(mtx_vio_state_);
-        current_lio_vel_ = curr_vio_state_.velocity_.norm();
-        dlog_lio_vel_.Log(current_wheel_vel_, current_lio_vel_);
-        const auto& biasAcc = curr_vio_state_.bias_acc_;
-        dlog_bias_acc_.Log(biasAcc[0], biasAcc[1], biasAcc[2]);
-        const auto& biasGyr = curr_vio_state_.bias_gyr_;
-        dlog_bias_gyr_.Log(biasGyr[0], biasGyr[1], biasGyr[2]);
-        const auto gravVec = curr_vio_state_.grav_;
-        dlog_state_grav_.Log(gravVec[0], gravVec[1], gravVec[2]);
-        dlog_lio_confi_.Log(0);
+        state_show = curr_vio_state_;
         vio_state_need_update_.store(false);
         vio_state_received_ = true;
     }
+
+    double visualz_usage = 
+        state_show.visualz_imgLK_usage_ + 
+        state_show.visualz_state_usage_;
+    state_show.latest_whole_usage_ = 
+        state_show.latest_tracking_usage_ +
+        state_show.latest_procmeas_usage_ + 
+        state_show.visualz_imgLK_usage_ + 
+        state_show.visualz_state_usage_;
+    current_lio_vel_ = state_show.velocity_.norm();
+    dlog_lio_vel_.Log(current_wheel_vel_, current_lio_vel_);
+    const auto& biasAcc = state_show.bias_acc_;
+    dlog_bias_acc_.Log(biasAcc[0], biasAcc[1], biasAcc[2]);
+    const auto& biasGyr = state_show.bias_gyr_;
+    dlog_bias_gyr_.Log(biasGyr[0], biasGyr[1], biasGyr[2]);
+    const auto gravVec = state_show.grav_;
+    dlog_state_grav_.Log(gravVec[0], gravVec[1], gravVec[2]);
+    dlog_lio_confi_.Log(0);
+    dlog_time_usage_.Log(state_show.latest_tracking_usage_, 
+        state_show.latest_procmeas_usage_, visualz_usage, 
+        state_show.latest_whole_usage_);
 
     return true;
 }
@@ -565,7 +579,7 @@ bool UiWindowImpl::UpdateUiSysRunStatus() {
     {
         std::lock_guard<std::mutex> lock(mtx_run_status_);
         const double all_dura = (curr_run_status_.lidar_preproc_ + curr_run_status_.lio_pipeline_) * 1000;
-        dlog_time_usage_.Log(all_dura, curr_run_status_.lio_pipeline_ * 1000, curr_run_status_.ieskf_sum_ * 1000);
+        // dlog_time_usage_.Log(all_dura, curr_run_status_.lio_pipeline_ * 1000, curr_run_status_.ieskf_sum_ * 1000);
         run_status_need_update_.store(false);
     }
 

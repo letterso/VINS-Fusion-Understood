@@ -120,7 +120,7 @@ class VinsEstimator {
     /// @brief [原optimization()]执行优化？
     void runOptimization();
 
-    /// @brief 滑动一次，初始化阶段和VIO阶段都会调用
+    /// @brief 完成一轮优化后，滑动一次窗口，初始化阶段和VIO阶段都会调用
     void slideWindow();
 
     /// @brief 检出重投影误差超过阈值的feature
@@ -151,6 +151,7 @@ class VinsEstimator {
     // [double2vector]将ceres优化结果保存到状态量中 
     void CeresParamToState();
 
+    // 移除
     void slideWindowNew();
     void slideWindowOld();
 
@@ -216,12 +217,17 @@ class VinsEstimator {
     Vector3d Bgs[(WINDOW_SIZE + 1)];                        //滑窗状态量：陀螺仪零偏
     double Headers[(WINDOW_SIZE + 1)];                      //滑窗中的时间戳（注意是image原始时间戳，未对齐到IMU时刻上）
 
-    double curr_sys_state_time_;                            //当前系统状态的时间戳（可用于外部发布当前VIO状态）
-
     int frame_count;                                        //滑窗中当前的帧数  ******  //一个持续累加的计数器，用作标识滑窗中的帧？  //窗口内的第几帧,最大值为WINDOW_SIZE + 1
+    std::atomic<int> num_optimz_tracked_feats_;             //滑窗优化中，追踪的鲁邦特征数量
+    std::atomic<int> num_optimz_tracked_times_;             //滑窗优化中，鲁邦特征被追踪的帧次
 
     int num_input_image_;                                   //inputIMage函数收到的图像帧的计数
     double prev_time_, curr_time_;                          //上一图像帧、当前图像帧的时间戳（注意是对齐到IMU上的时刻，已经补齐了时间同步误差）
+    double curr_sys_state_time_;                            //当前系统状态的时间戳（可用于外部发布当前VIO状态）
+    std::atomic<double> curr_tracking_usage_;               //光流追踪的耗时
+    std::atomic<double> curr_procmeas_usage_;               //一次ProcMeas处理的耗时
+    std::atomic<double> ui_show_imgLK_usage_;               //UI显示的耗时
+    std::atomic<double> ui_show_state_usage_;               //UI显示的耗时
 
     bool first_first_imu_;                                  //系统中，IMU普通积分的第一帧
     Vector3d acc_0, gyr_0;                                  //IMU普通积分递推的左帧（k-1 >> k）
@@ -252,14 +258,14 @@ class VinsEstimator {
     // ceres直接使用的优化变量（必须是double对象）
     double para_Pose_[WINDOW_SIZE + 1][SIZE_POSE];
     double para_Speed_Bias_[WINDOW_SIZE + 1][SIZE_SPEEDBIAS];
-    double para_Features_[NUM_OF_F][SIZE_FEATURE];
+    double para_Features_[NUM_OF_F][SIZE_FEATURE];          //第一维为特征idx，第二维为帧idx，变量为【逆深度】
     double para_Ex_Pose_[2][SIZE_POSE];
     // double para_Retrive_Pose_[SIZE_POSE];/*未启用*/
     double para_Td_[1][1];
     // double para_Tr_[1][1];/*未启用*/
 
-    MarginalizationInfo* last_margnlztn_info_;
-    vector<double*> last_margnlztn_parameter_blocks_;
+    MarginalizationInfo* last_margnlztn_info_;              //记录边缘化的结果，用于构建边缘化因子和添加到优化问题中
+    vector<double*> last_margnlztn_param_blocks_;           //边缘化完成后，边缘化因子对应的优化变量？
 
     // int loop_window_index;  //unused
 
@@ -280,9 +286,9 @@ class VinsEstimator {
 // ========================== internals: private members ========================== //
 
    private:
-    handleLatestOdometry handle_latest_odom_;   //be caseful about deadlock.
-    handleTrackingImage handle_track_image_;    //be caseful about deadlock.
-    handleStatistics handle_statistics_;        //be caseful about deadlock.
-    handleVioStates handle_vio_states_;         //be caseful about deadlock.
+    handleLatestOdometry handle_latest_odom_;   //be careful about deadlock.
+    handleTrackingImage handle_track_image_;    //be careful about deadlock.
+    handleStatistics handle_statistics_;        //be careful about deadlock.
+    handleVioStates handle_vio_states_;         //be careful about deadlock.
 
 };

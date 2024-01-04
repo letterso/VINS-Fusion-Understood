@@ -25,6 +25,12 @@ struct VioState {
     Eigen::Vector3d grav_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d T_l2i = Eigen::Vector3d::Zero();
     Eigen::Quaterniond R_l2i = Eigen::Quaterniond::Identity();
+
+    double latest_tracking_usage_;
+    double latest_procmeas_usage_; /*滞后一次*/
+    double visualz_imgLK_usage_;
+    double visualz_state_usage_; /*滞后一次*/
+    double latest_whole_usage_; /*近似结果*/
 };
 
 

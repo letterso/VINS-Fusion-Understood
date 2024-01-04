@@ -157,9 +157,9 @@ VectorXd FeatureManager::getRobustFeatureDepthVec() {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (it_per_id.used_num < 4) { continue; }
         #if 1
-        dep_vec(++feature_index) = 1. / it_per_id.estimated_depth;
+        dep_vec(++feature_index) = 1. / it_per_id.estimated_depth; /*使用【逆深度】*/
         #else
-        dep_vec(++feature_index) = it_per_id->estimated_depth;
+        dep_vec(++feature_index) = it_per_id->estimated_depth; /*使用【普通深度】*/
         #endif
     }
     return dep_vec;
@@ -308,7 +308,7 @@ void FeatureManager::triangulate(int frameCnt, Vector3d Ps[], Matrix3d Rs[], Vec
 
 void FeatureManager::triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
     Eigen::Vector2d &point0, Eigen::Vector2d &point1, Eigen::Vector3d &point_3d/*output*/) {
-    /** 描述： TODO: 推导逆深度计算公式、计算原理 */
+    /** 描述：已知两个cam的位姿，已知特征在两个cam中的像素坐标，计算特征在第一个cam坐标系中的三维坐标（也即三角化） */
 
     Eigen::Matrix4d design_matrix = Eigen::Matrix4d::Zero();
     design_matrix.row(0) = point0[0] * Pose0.row(2) - Pose0.row(0);
@@ -319,7 +319,7 @@ void FeatureManager::triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen:
     triangulated_point = design_matrix.jacobiSvd(Eigen::ComputeFullV).matrixV().rightCols<1>();
     point_3d(0) = triangulated_point(0) / triangulated_point(3);
     point_3d(1) = triangulated_point(1) / triangulated_point(3);
-    point_3d(2) = triangulated_point(2) / triangulated_point(3); /*这个应该是逆深度*/
+    point_3d(2) = triangulated_point(2) / triangulated_point(3); /*通过三角化，得到了特征的3D坐标*/
 }
 
 void FeatureManager::initFramePoseByPnP(int frameCnt, Vector3d Ps[], Matrix3d Rs[], Vector3d tic[], Matrix3d ric[]) {
@@ -407,6 +407,39 @@ bool FeatureManager::solvePoseByPnP(Eigen::Matrix3d &R, Eigen::Vector3d &P,
     return true;
 }
 
+void FeatureManager::removeFront(int _frameCount) {
+    for (auto it = features_.begin(), it_next = features_.begin(); it != features_.end(); it = it_next) {
+        it_next++;
+
+        if (it->start_frame == _frameCount) {
+            it->start_frame--;
+        }
+        else {
+            int j = WINDOW_SIZE - 1 - it->start_frame;
+            if (it->endFrame() < _frameCount - 1)
+                continue;
+            it->feature_per_frame.erase(it->feature_per_frame.begin() + j);
+            if (it->feature_per_frame.size() == 0)
+                features_.erase(it);
+        }
+    }
+}
+
+void FeatureManager::removeBack() {
+    for (auto it = features_.begin(), it_next = features_.begin(); it != features_.end(); it = it_next) {
+        it_next++;
+
+        if (it->start_frame != 0) {
+            it->start_frame--;
+        }
+        else {
+            it->feature_per_frame.erase(it->feature_per_frame.begin());
+            if (it->feature_per_frame.size() == 0)
+                features_.erase(it);
+        }
+    }
+}
+
 void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, 
     Eigen::Matrix3d new_R, Eigen::Vector3d new_P) {
     /** 描述：
@@ -422,7 +455,7 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
         else {
             Eigen::Vector3d uv_i = it->feature_per_frame[0].point;  
             it->feature_per_frame.erase(it->feature_per_frame.begin());
-            if (it->feature_per_frame.size() < 2) {
+            if (it->feature_per_frame.size() < 2) /*不够鲁邦的特征，直接丢掉*/ {
                 features_.erase(it);
                 continue;
             }
@@ -443,40 +476,6 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
             features_.erase(it);
         }
         */
-    }
-}
-
-void FeatureManager::removeBack() {
-    for (auto it = features_.begin(), it_next = features_.begin(); it != features_.end(); it = it_next) {
-        it_next++;
-
-        if (it->start_frame != 0) {
-            it->start_frame--;
-        }
-        else {
-            it->feature_per_frame.erase(it->feature_per_frame.begin());
-            if (it->feature_per_frame.size() == 0)
-                features_.erase(it);
-        }
-    }
-}
-
-void FeatureManager::removeFront(int _frameCount) {
-    for (auto it = features_.begin(), it_next = features_.begin(); it != features_.end(); it = it_next) {
-        it_next++;
-
-        if (it->start_frame == _frameCount) {
-            it->start_frame--;
-        }
-        else
-        {
-            int j = WINDOW_SIZE - 1 - it->start_frame;
-            if (it->endFrame() < _frameCount - 1)
-                continue;
-            it->feature_per_frame.erase(it->feature_per_frame.begin() + j);
-            if (it->feature_per_frame.size() == 0)
-                features_.erase(it);
-        }
     }
 }
 

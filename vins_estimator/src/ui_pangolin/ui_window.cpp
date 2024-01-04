@@ -89,6 +89,10 @@ void UiWindow::UpdateVinsStatus(const VinsEstimator& estimator) {
     impl_->curr_vio_state_.bias_acc_ = estimator.latest_Ba_;
     impl_->curr_vio_state_.bias_gyr_ = estimator.latest_Bg_;
     impl_->curr_vio_state_.grav_ = estimator.Grav_;
+    impl_->curr_vio_state_.latest_tracking_usage_ = estimator.curr_tracking_usage_.load();
+    impl_->curr_vio_state_.latest_procmeas_usage_ = estimator.curr_procmeas_usage_.load();
+    impl_->curr_vio_state_.visualz_imgLK_usage_ = estimator.ui_show_imgLK_usage_.load();
+    impl_->curr_vio_state_.visualz_state_usage_ = estimator.ui_show_state_usage_.load();
     impl_->vio_state_need_update_.store(true);
 }
 

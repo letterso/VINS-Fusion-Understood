@@ -19,8 +19,8 @@
 #include "../utility/tic_toc.h"
 #include "../estimator/parameters.h"
 
-class ProjectionTwoFrameOneCamFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1, 1>
-{
+/// @brief 单目方式下，特征点在两个共视帧之间的重投影误差
+class ProjectionTwoFrameOneCamFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1, 1> {
    public:
     ProjectionTwoFrameOneCamFactor(
         const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j,
