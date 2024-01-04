@@ -4,9 +4,9 @@ Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fu
 
 欢迎来到 **VINS-Fusion-Understood**，一个人人可懂的VINS-Fusion版本。
 
+在这里，我们对[原版VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)的代码风格进行了重构，不仅包括【1】一些必要的Google风格变量重命名/缩进/大括号位置调整，更重要的是，【2】我们按照含义聚类和逻辑顺序重新排列了几乎所有的成员函数和数据成员，【3】并添加了详尽的、经得起推敲的注释，尤其是**三个主要类、以及滑窗优化、边缘化**等部分。由此，我们希望VINS-Fusion-Understood能够做到代码即文档——让读代码就像读文档一样轻松。此外，【4】我们还在VINS算法中剥离了所有的ROS代码，【5】并引入了glog作为日志工具，以方便调试和保存日志文件。这些改动都有助于您将VINS方便地移植到其它通信框架或计算平台上。【6】为了便于理解VINS，我们还引入了ui窗口以绘制VINS系统内部的状态信息，使VINS可视化。以上所有重构工作，您都可以从本仓库的代码中看到。您也可以从下方的动图中对VINS-Fusion-Understood的代码风格和注释内容窥见一二。
 
-
-在这里，我们对[原版VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion)的代码风格进行了重构，不仅包括【1】一些必要的Google风格变量重命名/缩进/大括号位置调整，更重要的是，【2】我们按照含义聚类和逻辑顺序重新排列了几乎所有的成员函数和数据成员，【3】并添加了详尽的、经得起推敲的注释。由此，我们希望VINS-Fusion-Understood能够做到代码即文档——让读代码就像读文档一样轻松。此外，【4】我们还在VINS算法中剥离了所有的ROS代码，【5】并引入了glog作为日志工具，以方便调试和保存日志文件。这些改动都有助于您将VINS方便地移植到其它通信框架或计算平台上。【6】未来，我们还会引入ui窗口以绘制VINS系统内含的状态信息，使VINS可视化。以上所有重构工作，您都可以从本仓库的代码中看到。您也可以从下方的动图中对VINS-Fusion-Understood的代码风格和注释内容窥见一二。
+更详细的介绍，您可以前往中文博客查看：[【知乎】VINS-Fusion-Understood：完全可理解的VINS-Fusion，靠谱注释+工程重构版](https://zhuanlan.zhihu.com/p/674861674)
 
 尽管做了以上重构，但**VINS-Fusion-Understood的代码内容严格忠实于原版，在精度和运行性能上也绝无二致**，下图是原版和本版本的运行结果对比。如果您对VINS-Fusion的源码尚不了解，这将是您上手VINS最合适的版本或参考。
 

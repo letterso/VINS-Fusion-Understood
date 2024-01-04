@@ -217,7 +217,7 @@ class VinsEstimator {
     Vector3d Bgs[(WINDOW_SIZE + 1)];                        //滑窗状态量：陀螺仪零偏
     double Headers[(WINDOW_SIZE + 1)];                      //滑窗中的时间戳（注意是image原始时间戳，未对齐到IMU时刻上）
 
-    int frame_count;                                        //滑窗中当前的帧数  ******  //一个持续累加的计数器，用作标识滑窗中的帧？  //窗口内的第几帧,最大值为WINDOW_SIZE + 1
+    int frame_count;                                        //当前正在处理的帧，在滑窗中的索引，最大不超过10；注意滑窗中第一帧的索引总为0！
     std::atomic<int> num_optimz_tracked_feats_;             //滑窗优化中，追踪的鲁邦特征数量
     std::atomic<int> num_optimz_tracked_times_;             //滑窗优化中，鲁邦特征被追踪的帧次
 
@@ -255,17 +255,17 @@ class VinsEstimator {
     // vector<Vector3d> margin_cloud;                       //unused
     vector<Vector3d> key_poses_;                            //滑窗中所有帧的位置坐标（用于输出可视化）
 
-    // ceres直接使用的优化变量（必须是double对象）
-    double para_Pose_[WINDOW_SIZE + 1][SIZE_POSE];
+    // ceres参数块，用于ceres优化（ceres要求必须是double对象/数组）
+    double para_Pose_[WINDOW_SIZE + 1][SIZE_POSE];          //第一维是帧，第二维是xyz_QxQyQzQw
     double para_Speed_Bias_[WINDOW_SIZE + 1][SIZE_SPEEDBIAS];
     double para_Features_[NUM_OF_F][SIZE_FEATURE];          //第一维为特征idx，第二维为帧idx，变量为【逆深度】
-    double para_Ex_Pose_[2][SIZE_POSE];
+    double para_Ex_Pose_[2][SIZE_POSE];                     //第一维是相机index
     // double para_Retrive_Pose_[SIZE_POSE];/*未启用*/
     double para_Td_[1][1];
     // double para_Tr_[1][1];/*未启用*/
 
-    MarginalizationInfo* last_margnlztn_info_;              //记录边缘化的结果，用于构建边缘化因子和添加到优化问题中
-    vector<double*> last_margnlztn_param_blocks_;           //边缘化完成后，边缘化因子对应的优化变量？
+    MarginalizationManager* last_margnlztn_manager_;        //收集边缘化所需信息，执行边缘化，获得边缘化因子
+    vector<double*> last_margnlztn_param_blocks_;           //边缘化因子对应的参数块，指针实际指向类的ceres参数块
 
     // int loop_window_index;  //unused
 

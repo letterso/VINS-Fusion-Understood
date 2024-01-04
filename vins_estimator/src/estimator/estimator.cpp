@@ -86,12 +86,12 @@ void VinsEstimator::clearState() {
     if (tmp_pre_integration_ != nullptr) {
         delete tmp_pre_integration_;
     }
-    if (last_margnlztn_info_ != nullptr) {
-        delete last_margnlztn_info_;
+    if (last_margnlztn_manager_ != nullptr) {
+        delete last_margnlztn_manager_;
     }
 
     tmp_pre_integration_ = nullptr;
-    last_margnlztn_info_ = nullptr;
+    last_margnlztn_manager_ = nullptr;
     last_margnlztn_param_blocks_.clear();
 
     f_manager_.clearState();
@@ -143,11 +143,11 @@ void VinsEstimator::changeSensorType(int use_imu, int use_stereo) {
                 restart = true;
             }
             else {
-                if (last_margnlztn_info_ != nullptr) {
-                    delete last_margnlztn_info_;
+                if (last_margnlztn_manager_ != nullptr) {
+                    delete last_margnlztn_manager_;
                 }
                 tmp_pre_integration_ = nullptr;
-                last_margnlztn_info_ = nullptr;
+                last_margnlztn_manager_ = nullptr;
                 last_margnlztn_param_blocks_.clear();
             }
         }
@@ -446,7 +446,7 @@ void VinsEstimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<d
     cur_img_frame.pre_integration = tmp_pre_integration_;
     all_image_frame_.insert(make_pair(_img_time, cur_img_frame));
 
-    // 这个临时预积分器重置为新的，用于下一轮预积分
+    // 这个临时预积分器重置为新的，用于下一帧图像的预积分
     tmp_pre_integration_ = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]};
 
     if(ESTIMATE_EXTRINSIC == 2) /* no extrinsic prior at all, calib rotation! */ {
@@ -525,7 +525,7 @@ void VinsEstimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<d
         }
 
         if(frame_count < WINDOW_SIZE) {
-            frame_count++;
+            frame_count++; /* 唯一改变取值的地方，意味着索引的最大取值正是WIN_SIZE */
             int prev_frame = frame_count - 1;
             Ps[frame_count] = Ps[prev_frame];
             Vs[frame_count] = Vs[prev_frame];
@@ -876,9 +876,9 @@ void VinsEstimator::runOptimization() {
     // ############################## 开始添加各种残差块，也即约束 ##############################
 
     // 添加边缘化约束，若存在的话
-    if (last_margnlztn_info_ && last_margnlztn_info_->valid) {
+    if (last_margnlztn_manager_ && last_margnlztn_manager_->valid) {
         // construct new marginlization factor
-        MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_margnlztn_info_);
+        MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_margnlztn_manager_);
         problem.AddResidualBlock(marginalization_factor, NULL, last_margnlztn_param_blocks_);
     }
 
@@ -910,10 +910,10 @@ void VinsEstimator::runOptimization() {
             if (frame_i != frame_j) {
                 /*添加一次（左目的）帧间重投影误差*/
                 Vector3d pts_j = it_per_frame.point;
-                ProjectionTwoFrameOneCamFactor *cost_func = new ProjectionTwoFrameOneCamFactor(
+                ProjectionTwoFrameOneCamFactor *visual_factor = new ProjectionTwoFrameOneCamFactor(
                     pts_i, pts_j, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocity,
                     it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
-                problem.AddResidualBlock(cost_func, loss_function, 
+                problem.AddResidualBlock(visual_factor, loss_function, 
                                         para_Pose_[frame_i], para_Pose_[frame_j], para_Ex_Pose_[0], 
                                         para_Features_[feature_index], para_Td_[0]);
             }
@@ -922,19 +922,19 @@ void VinsEstimator::runOptimization() {
                 Vector3d pts_j_right = it_per_frame.pointRight;
                 /*添加一次（双目的）帧间重投影误差*/
                 if(frame_i != frame_j) {
-                    ProjectionTwoFrameTwoCamFactor *cost_func = new ProjectionTwoFrameTwoCamFactor(
+                    ProjectionTwoFrameTwoCamFactor *visual_factor = new ProjectionTwoFrameTwoCamFactor(
                         pts_i, pts_j_right, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocityRight,
                         it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
-                    problem.AddResidualBlock(cost_func, loss_function, 
+                    problem.AddResidualBlock(visual_factor, loss_function, 
                                             para_Pose_[frame_i], para_Pose_[frame_j], para_Ex_Pose_[0], para_Ex_Pose_[1], 
                                             para_Features_[feature_index], para_Td_[0]);
                 }
                 /*添加一次同一帧（左右目）之间的重投影误差*/
                 else {
-                    ProjectionOneFrameTwoCamFactor *cost_func = new ProjectionOneFrameTwoCamFactor(
+                    ProjectionOneFrameTwoCamFactor *visual_factor = new ProjectionOneFrameTwoCamFactor(
                         pts_i, pts_j_right, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocityRight,
                         it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
-                    problem.AddResidualBlock(cost_func, loss_function, 
+                    problem.AddResidualBlock(visual_factor, loss_function, 
                                             para_Ex_Pose_[0], para_Ex_Pose_[1], 
                                             para_Features_[feature_index], para_Td_[0]);
                 }
@@ -990,14 +990,14 @@ void VinsEstimator::runOptimization() {
 
     if (flag_marglize_type_ == MARGIN_OLD) /*边缘化最老帧*/ {
         /*用于收集边缘化所需要的全部信息（被边缘化帧及其关联的帧、特征、因子），而后执行边缘化，获得新的边缘化因子，用于下一轮滑窗优化*/
-        MarginalizationInfo *curr_margnlztn_info = new MarginalizationInfo();
+        MarginalizationManager *curr_margnlztn_manager = new MarginalizationManager();
 
-        /*因为边缘化操作需要从参数块中拿数据，所以先更新参数块*/
+        /*因为边缘化操作需要访问当前状态量的取值（线性化点），因此先更新状态量到ceres参数块中*/
         StateToCeresParam();
 
         //上一轮的边缘化因子，若与当前最老帧相关联，则需要被收集起来
-        if (last_margnlztn_info_ && last_margnlztn_info_->valid) {
-            vector<int> drop_set; /*这个应该是边缘化要丢掉的状态量的位置吧？*/
+        if (last_margnlztn_manager_ && last_margnlztn_manager_->valid) {
+            vector<int> drop_set; /*标识需要被边缘化掉的参数的索引*/
             for (int i = 0; i < static_cast<int>(last_margnlztn_param_blocks_.size()); i++) {
                 /*以下，若上一轮边缘化因子的关联状态量里有当前最老帧，则drop_set非空，意味着需要把上一轮边缘化因子纳入本轮边缘化*/
                 /*如果上一轮边缘化的是次新帧，则大概率条件不满足而drop_set为空，于是在本轮边缘化中不做处理，这符合逻辑*/
@@ -1007,21 +1007,22 @@ void VinsEstimator::runOptimization() {
                 }
             }
             // add previous margnliz factor to current margnliz process
-            MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_margnlztn_info_);
+            MarginalizationFactor *cost_func = new MarginalizationFactor(last_margnlztn_manager_);
             ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                marginalization_factor, NULL, last_margnlztn_param_blocks_, drop_set);
-            curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                cost_func, NULL, last_margnlztn_param_blocks_, drop_set);
+            curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
         }
 
         //与最老帧关联的imu预积分因子，需要被收集起来
         if(USE_IMU) {
             if (pre_integrations_[1]->sum_dt < 10.0) {
-                IMUFactor* imu_factor = new IMUFactor(pre_integrations_[1]);
+                IMUFactor* cost_func = new IMUFactor(pre_integrations_[1]);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                    imu_factor, NULL,
-                    vector<double*>{para_Pose_[0], para_Speed_Bias_[0], para_Pose_[1], para_Speed_Bias_[1]},
-                    vector<int>{0, 1});
-                curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                    cost_func, NULL/*loss func*/,
+                    vector<double*>{para_Pose_[0], para_Speed_Bias_[0], 
+                                    para_Pose_[1], para_Speed_Bias_[1]},
+                    vector<int>{0, 1}/*drop set*/);
+                curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
             }
         }
 
@@ -1053,34 +1054,34 @@ void VinsEstimator::runOptimization() {
                             cost_func, loss_function,
                             vector<double*>{para_Pose_[frame_i], para_Pose_[frame_j], 
                                 para_Ex_Pose_[0], para_Features_[feature_index], para_Td_[0]},
-                            vector<int>{0, 3});
-                        curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                            vector<int>{0, 3}/*drop set*/);
+                        curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
                     }
                     if(STEREO && it_per_frame.is_stereo) {
                         Vector3d pts_j_right = it_per_frame.pointRight;
                         /*将（双目）共视帧约束纳入边缘化*/
                         if(frame_i != frame_j) {
-                            ProjectionTwoFrameTwoCamFactor *f = new ProjectionTwoFrameTwoCamFactor(
+                            ProjectionTwoFrameTwoCamFactor *cost_func = new ProjectionTwoFrameTwoCamFactor(
                                 pts_i, pts_j_right, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocityRight,
                                 it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
                             ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                                f, loss_function,
+                                cost_func, loss_function,
                                 vector<double*>{para_Pose_[frame_i], para_Pose_[frame_j], 
                                     para_Ex_Pose_[0], para_Ex_Pose_[1], 
                                     para_Features_[feature_index], para_Td_[0]},
-                                vector<int>{0, 4});
-                            curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                                vector<int>{0, 4}/*drop set*/);
+                            curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
                         }
                         /*将（左右目）之间的共视约束纳入边缘化*/
                         else {
-                            ProjectionOneFrameTwoCamFactor *f = new ProjectionOneFrameTwoCamFactor(
+                            ProjectionOneFrameTwoCamFactor *cost_func = new ProjectionOneFrameTwoCamFactor(
                                 pts_i, pts_j_right, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocityRight,
                                 it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
                             ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                                f, loss_function,
+                                cost_func, loss_function,
                                 vector<double*>{para_Ex_Pose_[0], para_Ex_Pose_[1], para_Features_[feature_index], para_Td_[0]},
-                                vector<int>{2});
-                            curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                                vector<int>{2}/*drop set*/);
+                            curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
                         }
                     }
                 }
@@ -1088,11 +1089,11 @@ void VinsEstimator::runOptimization() {
         }
 
         TicToc t_pre_margin;
-        curr_margnlztn_info->preMarginalize();
+        curr_margnlztn_manager->preMarginalize();
         // printf("[ DBG ] pre marginalization %f ms \n", t_pre_margin.toc());
         
         TicToc t_margin;
-        curr_margnlztn_info->marginalize();
+        curr_margnlztn_manager->marginalize();
         // printf("[ DBG ] marginalization %f ms \n", t_margin.toc());
 
         // 丢掉最老帧之后，状态量位置索引需要重置
@@ -1108,28 +1109,28 @@ void VinsEstimator::runOptimization() {
         }
         addr_shift[reinterpret_cast<long>(para_Td_[0])] = para_Td_[0];//TODO:这句话是啥意思？
 
-        vector<double*> parameter_blocks = curr_margnlztn_info->getParameterBlocks(addr_shift);
+        vector<double*> parameter_blocks = curr_margnlztn_manager->getParameterBlocks(addr_shift);
 
         // 保存新的边缘化因子，用于下一轮滑窗优化
-        if (last_margnlztn_info_) {
-            delete last_margnlztn_info_;
+        if (last_margnlztn_manager_) {
+            delete last_margnlztn_manager_;
         }
-        last_margnlztn_info_ = curr_margnlztn_info;
+        last_margnlztn_manager_ = curr_margnlztn_manager;
         last_margnlztn_param_blocks_ = parameter_blocks;
 
     }
     else /*边缘化次新帧*/ {
-        if (last_margnlztn_info_ && 
+        if (last_margnlztn_manager_ && 
             std::count(std::begin(last_margnlztn_param_blocks_), 
                 std::end(last_margnlztn_param_blocks_), para_Pose_[WINDOW_SIZE - 1])) {
             /*用于收集边缘化所需要的全部信息（被边缘化帧及其关联的帧、特征、因子），而后执行边缘化，获得新的边缘化因子，用于下一轮滑窗优化*/
-            MarginalizationInfo *curr_margnlztn_info = new MarginalizationInfo();
+            MarginalizationManager *curr_margnlztn_manager = new MarginalizationManager();
 
-            /*因为边缘化操作需要从参数块中拿数据，所以先更新参数块*/
+            /*因为边缘化操作需要访问当前状态量的取值（线性化点），因此先更新状态量到ceres参数块中*/
             StateToCeresParam();
 
             // 同上，不再重复注释
-            if (last_margnlztn_info_ && last_margnlztn_info_->valid) {
+            if (last_margnlztn_manager_ && last_margnlztn_manager_->valid) {
                 vector<int> drop_set;
                 for (int i = 0; i < static_cast<int>(last_margnlztn_param_blocks_.size()); i++) {
                     assert(last_margnlztn_param_blocks_[i] != para_Speed_Bias_[WINDOW_SIZE - 1]);
@@ -1138,20 +1139,21 @@ void VinsEstimator::runOptimization() {
                     }
                 }
                 // add previous margnliz factor to current margnliz process
-                MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_margnlztn_info_);
+                MarginalizationFactor *cost_func = new MarginalizationFactor(last_margnlztn_manager_);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                    marginalization_factor, NULL, last_margnlztn_param_blocks_, drop_set);
-                curr_margnlztn_info->addResidualBlockInfo(residual_block_info);
+                    cost_func, NULL, last_margnlztn_param_blocks_, drop_set);
+                curr_margnlztn_manager->addResidualBlockInfo(residual_block_info);
             }
 
             /// NOTE: 边缘次新帧时，特征观测和相关约束直接丢掉；因此不像边缘化最老帧时那么麻烦
+            // 另外，预积分器不重置，接着预积分即可，相当于imu因子的边缘化已经被考虑了
 
             TicToc t_pre_margin;
-            curr_margnlztn_info->preMarginalize();
+            curr_margnlztn_manager->preMarginalize();
             // printf("[ DBG ] end pre marginalization, %f ms \n", t_pre_margin.toc());
 
             TicToc t_margin;
-            curr_margnlztn_info->marginalize();
+            curr_margnlztn_manager->marginalize();
             // printf("[ DBG ] end marginalization, %f ms \n", t_margin.toc());
 
             // 因为丢掉了次新帧，所以状态量位置索引需要重置
@@ -1176,13 +1178,13 @@ void VinsEstimator::runOptimization() {
             }
             addr_shift[reinterpret_cast<long>(para_Td_[0])] = para_Td_[0];
 
-            vector<double*> parameter_blocks = curr_margnlztn_info->getParameterBlocks(addr_shift);
+            vector<double*> parameter_blocks = curr_margnlztn_manager->getParameterBlocks(addr_shift);
 
             // 保存新的边缘化因子，用于下一轮滑窗优化
-            if (last_margnlztn_info_) {
-                delete last_margnlztn_info_; 
+            if (last_margnlztn_manager_) {
+                delete last_margnlztn_manager_; 
             }
-            last_margnlztn_info_ = curr_margnlztn_info;
+            last_margnlztn_manager_ = curr_margnlztn_manager;
             last_margnlztn_param_blocks_ = parameter_blocks;
 
         }

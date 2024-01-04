@@ -228,6 +228,7 @@ int main(int argc, char **argv) {
     FLAGS_stderrthreshold = google::INFO;
     // FLAGS_log_dir="."; /*默认[/tmp/程序名.INFO]*/
     // google::ParseCommandLineFlags(&argc, &argv, true); //预留
+    LOG(INFO) << "usage: rosrun vins vins_node [ConfigFile] [UiOption(0/1)]";
 
     ros::init(argc, argv, "vins_estimator");
     ros::NodeHandle nh_("~");
