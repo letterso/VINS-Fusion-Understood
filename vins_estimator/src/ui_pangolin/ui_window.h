@@ -27,11 +27,11 @@ class UiWindow {
     void UpdateRawWheel(const WheelData& wheel_data);
     void UpdateCurrentImage(const cv::Mat& curr_image);
     void UpdateCurrentFeats(const std::vector<Eigen::Vector3f>& curr_feats);
-    void UpdateVioState(const VioState& vio_state);
+    void UpdateVioStatus(const VioStatus& vio_state);
     void UpdateRunningStatus(const RunningStatus& status);
 
     /// @brief AllInOne方式更新ui
-    void UpdateVinsStatus(const VinsEstimator& estimator);
+    void UpdateVioStatus(const VinsEstimator& estimator);
 
    private:
     double xxx;

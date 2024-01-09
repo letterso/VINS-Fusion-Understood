@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
     vins_estimator_->setLatestOdometryHandle(pubLatestOdometry);
     vins_estimator_->setTrackingImageHandle(pubTrackImage);
     vins_estimator_->setStatisticsHandle(printStatistics);
-    vins_estimator_->setVioStatesHandle(
+    vins_estimator_->setVinsStatusHandle(
         [&](const VinsEstimator& estimator) {
             pubOdometry(estimator);
             pubKeyPoses(estimator);
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
             pubKeyframe(estimator);
             pubTF(estimator);
             if (ui_window_) {
-                ui_window_->UpdateVinsStatus(estimator);
+                ui_window_->UpdateVioStatus(estimator);
             }
         }
     );

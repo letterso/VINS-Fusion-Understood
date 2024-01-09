@@ -74,7 +74,7 @@ class UiWindowImpl {
     WheelData curr_wheel_;
     cv::Mat curr_tracked_image_;
     std::vector<Vec3f> curr_tracked_feats_;
-    VioState curr_vio_state_;
+    VioStatus curr_vio_state_;
     RunningStatus curr_run_status_;
 
 
@@ -88,12 +88,12 @@ class UiWindowImpl {
     void CreateDisplayLayout();
 
     /// 渲染各个模块的信息
-    bool UpdateUiWheel();
-    bool UpdateUiIMU();
-    bool UpdateTrackedImages();
-    bool UpdateTrackedFeatures();
-    bool UpdateUiVioState();
-    bool UpdateUiSysRunStatus();
+    bool RenderWheelMsgs();
+    bool RenderIMUMsgs();
+    bool RenderTrackedImages();
+    bool RenderTrackedFeatures();
+    bool RenderVioStatus();
+    bool RenderRunningStatus();
 
 
    private: /* ********* 私有成员，无需多线程保护 ********* */
@@ -103,8 +103,8 @@ class UiWindowImpl {
 
     /// Ui内部数据,无需加锁
     bool vio_state_received_ = false;
-    double current_wheel_vel_ = 0;
-    double current_lio_vel_ = 0;
+    double curr_wheel_vel_ = 0;
+    Eigen::Vector3d curr_vio_vel_ = Eigen::Vector3d::Zero();
 
     /// 内部设施
     std::shared_ptr<LogRater> logging_rater;

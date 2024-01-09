@@ -11,7 +11,7 @@
 #include <Eigen/Geometry>
 
 
-struct VioState {
+struct VioStatus {
     /** 状态量： P, V, Q, Ba, Bg, G, TimeOffset, Extrinsics */
     size_t seq_ = 0;
     bool valid_ = false;

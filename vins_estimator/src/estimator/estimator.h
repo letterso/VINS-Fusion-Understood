@@ -68,7 +68,7 @@ class VinsEstimator {
         const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, const Eigen::Vector3d &V, double t)>;
     using handleTrackingImage = std::function<void(const cv::Mat &imgTrack, const double t)>;
     using handleStatistics = std::function<void(const VinsEstimator &estimator, double t)>;
-    using handleVioStates = std::function<void(const VinsEstimator &estimator)>;
+    using handleVinsStatus = std::function<void(const VinsEstimator &estimator)>;
 
     // ========================== interfaces ========================== //
 
@@ -76,7 +76,7 @@ class VinsEstimator {
     void setLatestOdometryHandle(const handleLatestOdometry& func_object) { handle_latest_odom_ = func_object; }
     void setTrackingImageHandle(const handleTrackingImage& func_object) { handle_track_image_ = func_object; }
     void setStatisticsHandle(const handleStatistics& func_object) { handle_statistics_ = func_object; }
-    void setVioStatesHandle(const handleVioStates& func_object) { handle_vio_states_ = func_object; }
+    void setVinsStatusHandle(const handleVinsStatus& func_object) { handle_vio_states_ = func_object; }
 
     void clearState();
     void setParameter();
@@ -289,6 +289,6 @@ class VinsEstimator {
     handleLatestOdometry handle_latest_odom_;   //be careful about deadlock.
     handleTrackingImage handle_track_image_;    //be careful about deadlock.
     handleStatistics handle_statistics_;        //be careful about deadlock.
-    handleVioStates handle_vio_states_;         //be careful about deadlock.
+    handleVinsStatus handle_vio_states_;         //be careful about deadlock.
 
 };

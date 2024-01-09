@@ -67,7 +67,7 @@ void UiWindow::UpdateCurrentFeats(const std::vector<Eigen::Vector3f>& curr_feats
     //
 }
 
-void UiWindow::UpdateVioState(const VioState& vio_state) {
+void UiWindow::UpdateVioStatus(const VioStatus& vio_state) {
     std::lock_guard<std::mutex> lock(impl_->mtx_vio_state_);
     impl_->curr_vio_state_ = vio_state;
     impl_->vio_state_need_update_.store(true);
@@ -79,7 +79,7 @@ void UiWindow::UpdateRunningStatus(const RunningStatus& status) {
     impl_->run_status_need_update_.store(true);
 }
 
-void UiWindow::UpdateVinsStatus(const VinsEstimator& estimator) {
+void UiWindow::UpdateVioStatus(const VinsEstimator& estimator) {
     // 放入 vio state
     std::lock_guard<std::mutex> lock(impl_->mtx_vio_state_);
     impl_->curr_vio_state_.timestamp_ = estimator.latest_time_;

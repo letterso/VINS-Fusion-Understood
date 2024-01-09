@@ -899,6 +899,10 @@ void VinsEstimator::runOptimization() {
     for (auto &it_per_id : f_manager_.features_) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (it_per_id.used_num < 4) {continue;} /*跟踪次数过少的feature不予添加(不稳定)*/
+        /** 这里应该值得强调一下，为什么只允许稳定（>=4次）的feature才能进入优化问题？
+         * 因为涉及到BA求解策略？（在ceres中似乎不至于）
+         * 优化结果的稳定性呗？
+        */
 
         f_cnt++;
         ++feature_index;
@@ -1120,6 +1124,7 @@ void VinsEstimator::runOptimization() {
 
     }
     else /*边缘化次新帧*/ {
+        // 下边这个if条件是说，只有上一次边缘化操作设计到次新帧时，才有必要考虑边缘化；否则直接丢掉次新帧即可（反正预积分会继续进行？）？
         if (last_margnlztn_manager_ && 
             std::count(std::begin(last_margnlztn_param_blocks_), 
                 std::end(last_margnlztn_param_blocks_), para_Pose_[WINDOW_SIZE - 1])) {

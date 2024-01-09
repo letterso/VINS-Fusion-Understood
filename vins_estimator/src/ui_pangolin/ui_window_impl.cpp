@@ -63,7 +63,7 @@ bool UiWindowImpl::Init(const std::string& win_name) {
     dlog_lio_yaw_.SetLabels(std::vector<std::string>{"yaw(deg)"});
 
     dlog_lio_pos_.SetLabels(std::vector<std::string>{"pos_x", "pos_y", "pos_z"});
-    dlog_lio_vel_.SetLabels(std::vector<std::string>{"wheel_vel", "lio_vel"});
+    dlog_lio_vel_.SetLabels(std::vector<std::string>{"vio_vel_x", "vio_vel_y", "vio_vel_z", "wheel_vel"});
     dlog_bias_acc_.SetLabels(std::vector<std::string>{"ba_x", "ba_y", "ba_z"});
     dlog_bias_gyr_.SetLabels(std::vector<std::string>{"bg_x", "bg_y", "bg_z"});
     dlog_state_grav_.SetLabels(std::vector<std::string>{"grav_x", "grav_y", "grav_z"});
@@ -416,12 +416,12 @@ void UiWindowImpl::RenderWindow() {
         const bool choice = menu_show_image;
 
         // 在这里执行所有的更新
-        UpdateUiWheel();
-        UpdateUiIMU();
-        // UpdateTrackedImages();
-        UpdateTrackedFeatures();
-        UpdateUiVioState();
-        UpdateUiSysRunStatus();
+        RenderWheelMsgs();
+        RenderIMUMsgs();
+        // RenderTrackedImages();
+        RenderTrackedFeatures();
+        RenderVioStatus();
+        RenderRunningStatus();
 
         // 在这里执行所有的渲染
         // RenderRangeImage();
@@ -441,7 +441,7 @@ void UiWindowImpl::RenderWindow() {
 
 // *********************************** 模块级更新 *********************************** //
 
-bool UiWindowImpl::UpdateUiWheel() {
+bool UiWindowImpl::RenderWheelMsgs() {
     if (!wheel_need_update_.load()) {
         return false;
     }
@@ -451,9 +451,10 @@ bool UiWindowImpl::UpdateUiWheel() {
         std::lock_guard<std::mutex> lock(mtx_raw_wheel_);
         const auto& speeds = curr_wheel_.wheel_speed;
         dlog_wheel_vel_.Log(speeds[0], speeds[1], speeds[2], speeds[3]);
-        current_wheel_vel_ = speeds.mean();
+        curr_wheel_vel_ = speeds.mean();
         if (!vio_state_received_) {
-            dlog_lio_vel_.Log(current_wheel_vel_, current_lio_vel_);
+            // dlog_lio_vel_.Log(curr_vio_vel_[0], curr_vio_vel_[1], 
+            //     curr_vio_vel_[2], curr_wheel_vel_);
         }
         wheel_need_update_.store(false);
     }
@@ -461,7 +462,7 @@ bool UiWindowImpl::UpdateUiWheel() {
     return true;
 }
 
-bool UiWindowImpl::UpdateUiIMU() {
+bool UiWindowImpl::RenderIMUMsgs() {
     if (!imu_need_update_.load()) {
         return false;
     }
@@ -479,7 +480,7 @@ bool UiWindowImpl::UpdateUiIMU() {
     return true;
 }
 
-bool UiWindowImpl::UpdateTrackedImages() {
+bool UiWindowImpl::RenderTrackedImages() {
     if (!curr_image_need_update_.load()) {
         return false;
     }
@@ -527,18 +528,18 @@ bool UiWindowImpl::UpdateTrackedImages() {
     return true;
 }
 
-bool UiWindowImpl::UpdateTrackedFeatures() {
+bool UiWindowImpl::RenderTrackedFeatures() {
     //
     return true;
 }
 
-bool UiWindowImpl::UpdateUiVioState() {
+bool UiWindowImpl::RenderVioStatus() {
     if (!vio_state_need_update_.load()) {
         return false;
     }
 
     // 读写访问中间变量，然后释放锁
-    VioState state_show;
+    VioStatus state_show;
     {
         std::lock_guard<std::mutex> lock(mtx_vio_state_);
         state_show = curr_vio_state_;
@@ -554,8 +555,9 @@ bool UiWindowImpl::UpdateUiVioState() {
         state_show.latest_procmeas_usage_ + 
         state_show.visualz_imgLK_usage_ + 
         state_show.visualz_state_usage_;
-    current_lio_vel_ = state_show.velocity_.norm();
-    dlog_lio_vel_.Log(current_wheel_vel_, current_lio_vel_);
+    curr_vio_vel_ = state_show.velocity_;
+    dlog_lio_vel_.Log(curr_vio_vel_[0], curr_vio_vel_[1], 
+        curr_vio_vel_[2], curr_wheel_vel_);
     const auto& biasAcc = state_show.bias_acc_;
     dlog_bias_acc_.Log(biasAcc[0], biasAcc[1], biasAcc[2]);
     const auto& biasGyr = state_show.bias_gyr_;
@@ -570,7 +572,7 @@ bool UiWindowImpl::UpdateUiVioState() {
     return true;
 }
 
-bool UiWindowImpl::UpdateUiSysRunStatus() {
+bool UiWindowImpl::RenderRunningStatus() {
     if (!run_status_need_update_.load()) {
         return false;
     }
