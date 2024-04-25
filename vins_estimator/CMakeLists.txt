@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(vins)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++14") #11改为14以支持pangolin
+set(CMAKE_CXX_STANDARD 14)
+
 #-DEIGEN_USE_MKL_ALL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
@@ -25,8 +26,6 @@ message(WARNING "## OpenCV_LIBS         : " ${OpenCV_LIBS})
 
 find_package(Ceres REQUIRED)
 
-find_package(Glog REQUIRED)
-
 find_package(Pangolin REQUIRED) #QUIET
 message(WARNING "## Pangolin INCLUDE DIRS: " ${Pangolin_INCLUDE_DIRS})
 message(WARNING "## Pangolin LIBRARIES   : " ${Pangolin_LIBRARIES})
@@ -42,6 +41,7 @@ message(WARNING "## Pangolin FOUND       : " ${Pangolin_FOUND})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
+find_package(Glog REQUIRED)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
