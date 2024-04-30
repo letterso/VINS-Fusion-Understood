@@ -19,6 +19,7 @@
 #include <glog/logging.h>
 
 #include "../utility/utility.h"
+#include "../utility/Configuration.h"
 
 // ========================== constant params ========================== //
 

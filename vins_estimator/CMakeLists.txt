@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD 14)
 #-DEIGEN_USE_MKL_ALL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
+# 设置文件读取目录
+SET (THIS_COM "${CMAKE_CURRENT_SOURCE_DIR}")
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_SOURCE_DIR}/src/utility/Configuration.h)
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
@@ -18,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4.8 REQUIRED)
 message(WARNING "## OpenCV_VERSION      : " ${OpenCV_VERSION})
 message(WARNING "## OpenCV_INCLUDE_DIRS : " ${OpenCV_INCLUDE_DIRS})
 message(WARNING "## OpenCV_LIBRARIES    : " ${OpenCV_LIBRARIES})
@@ -30,14 +34,8 @@ find_package(Pangolin REQUIRED) #QUIET
 message(WARNING "## Pangolin INCLUDE DIRS: " ${Pangolin_INCLUDE_DIRS})
 message(WARNING "## Pangolin LIBRARIES   : " ${Pangolin_LIBRARIES})
 message(WARNING "## Pangolin FOUND       : " ${Pangolin_FOUND})
-# if(${Pangolin_FOUND}) 
-#   message(WARNING "## yes, found Pangolin!")
-  # add_definitions(-DUSE_PANGOLIN)
 
-# if (Pangolin_FOUND) {
-#   message(WARNING "## yes, found Pangolin!")
-#   add_definitions(-DUSE_PANGOLIN)
-# }
+find_package(ncnn REQUIRED PATHS /usr/local)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
@@ -53,7 +51,7 @@ include_directories(
 
 catkin_package()
 
-add_library(vins_lib
+set(BASIC_CPP_LIST
   src/estimator/parameters.cpp
   src/estimator/estimator.cpp
   src/estimator/feature_manager.cpp
@@ -70,24 +68,26 @@ add_library(vins_lib
   src/utility/utility.cpp
   src/utility_ros/RosVisualization.cpp
   src/utility_ros/CameraPoseVisualization.cpp
-  src/ui_pangolin/ui_window_impl.cpp
-  src/ui_pangolin/ui_window.cpp
 )
 
-# if (${Pangolin_FOUND}) {
-#     add_library(vins_lib
-#       src/ui_pangolin/ui_window_impl.cpp
-#       src/ui_pangolin/ui_window.cpp
-#   )
-# }
+if(${Pangolin_FOUND})
+  list(APPEND BASIC_CPP_LIST
+    src/ui_pangolin/ui_window_impl.cpp
+    src/ui_pangolin/ui_window.cpp
+  )
+endif(${Pangolin_FOUND})
+
+add_library(vins_lib
+  ${BASIC_CPP_LIST}
+)
 
 target_link_libraries(vins_lib 
   ${catkin_LIBRARIES} 
   ${OpenCV_LIBS} 
   ${CERES_LIBRARIES}
   ${Pangolin_LIBRARIES}
+  ncnn
 )
-
 
 add_executable(vins_node src/rosNodeTest.cpp)
 target_link_libraries(vins_node vins_lib) 

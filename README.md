@@ -29,6 +29,11 @@ Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fu
 <img src="support_files/understood_version/with_pangolin_01.jpg" style="width:60%;height:auto;" /><br>
 *图5：Vins-Fusion-Understood运行界面*
 
+## CHANGELOG 
+
+- 适配OpenCV4
+
+- 增加[LET-NET](https://github.com/linyicheng1/LET-NET)
 
 <br>
 <br>

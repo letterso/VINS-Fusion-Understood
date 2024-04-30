@@ -59,6 +59,9 @@ void Image1Callback(const sensor_msgs::ImageConstPtr &img_msg) {
 
 cv::Mat RosMsgToCvMat(const sensor_msgs::ImageConstPtr &img_msg) {
     cv_bridge::CvImageConstPtr ptr;
+#ifdef LET_NET
+    ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8);
+#else
     if (img_msg->encoding == "8UC1") {
         sensor_msgs::Image img;
         img.header = img_msg->header;
@@ -72,7 +75,7 @@ cv::Mat RosMsgToCvMat(const sensor_msgs::ImageConstPtr &img_msg) {
     } else {
         ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::MONO8);
     }
-
+#endif
     cv::Mat cv_img = ptr->image.clone();
     return cv_img;
 }

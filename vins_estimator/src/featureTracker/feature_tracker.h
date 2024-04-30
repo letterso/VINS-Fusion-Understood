@@ -26,6 +26,11 @@
 #include "../estimator/parameters.h"
 #include "../utility/tic_toc.h"
 
+#define LET_NET
+#include "net.h"
+#define LET_WIDTH 640 // 512
+#define LET_HEIGHT 512 // 384
+
 using namespace std;
 using namespace Eigen;
 using namespace camodocal;
@@ -78,6 +83,21 @@ class FeatureTracker {
     // void showTwoImage(const cv::Mat &img1, const cv::Mat &img2, 
     //     vector<cv::Point2f> PTs1, vector<cv::Point2f> PTs2); /*空函数*/
 
+    // letnet初始化
+    void letnetInit();
+
+    // letnet推理获取权重和特征
+    void letnetProcess(const cv::Mat &imageBgr);
+
+    // 选择用于跟踪的特征点
+    void letnetFeaturesToTrack(cv::InputArray image,
+                               cv::OutputArray corners,
+                               const int &maxCorners,
+                               const double &qualityLevel,
+                               const double &minDistance,
+                               const cv::InputArray &mask,
+                               int blockSize = 3);
+
     // 将track结果绘制到图像上，供外界显示
     void drawTrack(const cv::Mat &imLeft, const cv::Mat &imRight, 
         vector<int> &curLeftIds, vector<cv::Point2f> &curLeftPts, 
@@ -118,7 +138,7 @@ class FeatureTracker {
     // cv::Mat fisheye_mask_;               //未用到，可能是预留fisheye方案
     vector<cv::Point2f> new_pts_;           //追踪到的特征点不足时，需要补充新的角特征
 
-    vector<cv::Point2f> prev_pts; //, cur_pts_, cur_right_pts_;             //上一帧、当前帧、当前帧右目，的feature点（也即像素坐标）
+    vector<cv::Point2f> prev_pts_; //, cur_pts_, cur_right_pts_;             //上一帧、当前帧、当前帧右目，的feature点（也即像素坐标）
     vector<cv::Point2f> prev_un_pts, cur_un_pts, cur_right_un_pts;          //去畸变之后的像素坐标
     vector<cv::Point2f> pts_velocity_, right_pts_velocity_;                 //feature像素在前后帧之间的移动速度
 
@@ -127,4 +147,11 @@ class FeatureTracker {
     map<int, cv::Point2f> prev_pts_map_;                                    //当前帧处理完成后，保存特征点【在左目上的原始像素坐标】，用于绘制追踪结果以可视化
     cv::Mat img_track_show_;                                                //[原imTrack]绘制track结果到这个图像上，用于ui显示
 
+    ncnn::Net net_;
+    cv::Mat score_;
+    cv::Mat desc_, last_desc_;
+    const float mean_vals[3] = {0, 0, 0};
+    const float norm_vals[3] = {1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0};
+    const float mean_vals_inv[3] = {0, 0, 0};
+    const float norm_vals_inv[3] = {255.f, 255.f, 255.f};
 };
