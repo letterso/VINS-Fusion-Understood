@@ -289,6 +289,6 @@ class VinsEstimator {
     handleLatestOdometry handle_latest_odom_;   //be careful about deadlock.
     handleTrackingImage handle_track_image_;    //be careful about deadlock.
     handleStatistics handle_statistics_;        //be careful about deadlock.
-    handleVinsStatus handle_vio_states_;         //be careful about deadlock.
+    handleVinsStatus handle_vio_states_;        //be careful about deadlock.
 
 };

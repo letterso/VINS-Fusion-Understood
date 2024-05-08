@@ -21,6 +21,10 @@
 #include "../utility/utility.h"
 #include "../utility/Configuration.h"
 
+// ========================== compile params ========================== //
+#define LET_NET
+#define USE_CUDA
+
 // ========================== constant params ========================== //
 
 const double FOCAL_LENGTH = 460.0;  //系统常量

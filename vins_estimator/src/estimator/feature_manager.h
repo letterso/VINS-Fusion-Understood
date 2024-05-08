@@ -68,11 +68,11 @@ class FeaturePerFrame {
 /// 这个结构体就是锚定FeatureID，保存特征点在所有帧中的观测信息。
 class FeaturePerId {
    public:
-    vector<FeaturePerFrame> feature_per_frame; /*特征点在不同帧中的观测描述*/
-    const int feature_id;
-    int start_frame; /*注意这个frame索引是动态调整的，总是与滑窗帧的序号保持一致*/
-    int used_num;
-    double estimated_depth;
+    vector<FeaturePerFrame> feature_per_frame; /*特征点在连续帧中的观测描述，一般用作判断关键帧和判断视差*/
+    const int feature_id; /*特征点ID索引*/
+    int start_frame; /*为首次观察到该特征的帧，这个frame索引是动态调整的，会因removeBack和removeBackShiftDepth更新，总是与滑窗帧的序号保持一致*/
+    int used_num; /*该特征出现的次数*/
+    double estimated_depth; /*start_frame下估计的逆深度*/
     int solve_flag; /* 0 haven't solve yet; 1 solve succ; 2 solve fail */
 
     FeaturePerId(int _featureId, int _startFrame)

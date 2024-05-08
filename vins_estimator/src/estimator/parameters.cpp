@@ -113,7 +113,7 @@ void readParameters(std::string config_file) {
     MIN_PARALLAX = MIN_PARALLAX / FOCAL_LENGTH;
 
     fsSettings["output_path"] >> OUTPUT_FOLDER;
-    VINS_RESULT_PATH = OUTPUT_FOLDER + "/vio.csv";
+    VINS_RESULT_PATH = OUTPUT_FOLDER + "/vio.txt";
     LOG(INFO) << "[readParams] save result path: " << VINS_RESULT_PATH;
     std::ofstream fout(VINS_RESULT_PATH, std::ios::out);
     fout.close();

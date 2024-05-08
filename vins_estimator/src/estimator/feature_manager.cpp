@@ -29,7 +29,7 @@ void FeatureManager::clearState() {
 
 bool FeatureManager::addFeatureCheckParallax(int _frameCount, 
     const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &_image, double td) {
-    /** 描述：
+    /** 描述：计算每一个特征点跟踪的次数和视差
      * 
     */
 
@@ -56,12 +56,12 @@ bool FeatureManager::addFeatureCheckParallax(int _frameCount,
         auto it = find_if(features_.begin(), features_.end(), 
             [feature_id](const FeaturePerId &it) {return it.feature_id == feature_id;});
 
-        if (it == features_.end()) {
+        if (it == features_.end()) {    //如果已经不存在，新建一个特征元素存入feature容器中
             features_.push_back(FeaturePerId(feature_id, _frameCount));
             features_.back().feature_per_frame.push_back(f_per_fra);
             new_feature_num_++;
         }
-        else if (it->feature_id == feature_id) {
+        else if (it->feature_id == feature_id) {  //如果已经存在，直接压入，跟踪数+1
             it->feature_per_frame.push_back(f_per_fra);
             last_track_num_++;
             if( it-> feature_per_frame.size() >= 4)
@@ -73,6 +73,10 @@ bool FeatureManager::addFeatureCheckParallax(int _frameCount,
     //if (_frameCount < 2 || last_track_num_ < 20 || new_feature_num_ > 0.5 * last_track_num_)
 
     // 如果满足4个条件之一，直接认为是关键帧
+    // 起始两帧
+    // 重复跟踪点小于20
+    // 长时间重复跟踪小于40
+    // 新点大于0.5*重复跟踪点
     if (_frameCount < 2 || last_track_num_ < 20 || long_track_num_ < 40 
         || new_feature_num_ > 0.5 * last_track_num_) {
         return true;
@@ -235,7 +239,7 @@ void FeatureManager::triangulate(int frameCnt, Vector3d Ps[], Matrix3d Rs[], Vec
             triangulatePoint(leftPose, rightPose, point0, point1, point3d);
             Eigen::Vector3d localPoint;
             localPoint = leftPose.leftCols<3>() * point3d + leftPose.rightCols<1>();
-            double depth = localPoint.z();
+            double depth = localPoint.z(); /*start_frame下的深度*/ 
             if (depth > 0)
                 it_per_id.estimated_depth = depth;
             else
@@ -502,18 +506,22 @@ void FeatureManager::removeFailures() {
 }
 
 double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int _frameCount) {
+    /** 描述：算一个特征点最后两帧数据中点的坐标在归一化平面中的距离
+     * 
+    */
+
     //check the second last frame is keyframe or not
     //parallax betwwen seconde last frame and third last frame
     const FeaturePerFrame &frame_i = it_per_id.feature_per_frame[_frameCount - 2 - it_per_id.start_frame];
     const FeaturePerFrame &frame_j = it_per_id.feature_per_frame[_frameCount - 1 - it_per_id.start_frame];
 
     double ans = 0;
-    Vector3d p_j = frame_j.point;
+    Vector3d p_j = frame_j.point; // 某特征点在倒数第一帧里的坐标
 
     double u_j = p_j(0);
     double v_j = p_j(1);
 
-    Vector3d p_i = frame_i.point;
+    Vector3d p_i = frame_i.point; // 某特征点在倒数第二帧里的坐标
     Vector3d p_i_comp;
 
     //int r_i = _frameCount - 2;
@@ -523,14 +531,14 @@ double FeatureManager::compensatedParallax2(const FeaturePerId &it_per_id, int _
     double dep_i = p_i(2);
     double u_i = p_i(0) / dep_i;
     double v_i = p_i(1) / dep_i;
-    double du = u_i - u_j, dv = v_i - v_j;
+    double du = u_i - u_j, dv = v_i - v_j; // 该点在前后两帧图像里归一化点的坐标差
 
     double dep_i_comp = p_i_comp(2);
     double u_i_comp = p_i_comp(0) / dep_i_comp;
     double v_i_comp = p_i_comp(1) / dep_i_comp;
     double du_comp = u_i_comp - u_j, dv_comp = v_i_comp - v_j;
 
-    ans = max(ans, sqrt(min(du * du + dv * dv, du_comp * du_comp + dv_comp * dv_comp)));
+    ans = max(ans, sqrt(min(du * du + dv * dv, du_comp * du_comp + dv_comp * dv_comp))); // 返回最大的坐标差
 
     return ans;
 }

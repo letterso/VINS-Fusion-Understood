@@ -26,7 +26,6 @@
 #include "../estimator/parameters.h"
 #include "../utility/tic_toc.h"
 
-#define LET_NET
 #include "net.h"
 #define LET_WIDTH 640 // 512
 #define LET_HEIGHT 512 // 384
