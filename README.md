@@ -1,3 +1,14 @@
+# CHANGELOG 
+
+基于VINS-Fusion-Understood进行修改，并补充部分注释，基于个人理解。
+
+- 适配OpenCV4
+
+- 单双目增加[LET-NET](https://github.com/linyicheng1/LET-NET)
+
+- 适配高版本ceres，要求2.1以上
+
+
 # VINS-Fusion-Understood
 
 Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fusion, codes refactored in Google style, reliable comments on almost every line, necessary modification on confusing member names, ROS code decoupled, glog embedded.
@@ -28,20 +39,6 @@ Welcome to **VINS-Fusion-Understood**: A fully understandable version of VINS-Fu
 
 <img src="support_files/understood_version/with_pangolin_01.jpg" style="width:60%;height:auto;" /><br>
 *图5：Vins-Fusion-Understood运行界面*
-
-## CHANGELOG 
-
-- 适配OpenCV4
-
-- 增加[LET-NET](https://github.com/linyicheng1/LET-NET)
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-
 
 # VINS-Fusion
 
