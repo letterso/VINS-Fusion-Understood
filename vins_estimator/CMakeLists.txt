@@ -61,6 +61,7 @@ set(BASIC_CPP_LIST
   src/initial/initial_sfm.cpp
   src/initial/initial_ex_rotation.cpp
   src/factor/pose_local_parameterization.cpp
+  src/factor/pose_manifold.cpp
   src/factor/projectionTwoFrameOneCamFactor.cpp
   src/factor/projectionTwoFrameTwoCamFactor.cpp
   src/factor/projectionOneFrameTwoCamFactor.cpp

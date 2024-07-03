@@ -840,8 +840,10 @@ void VinsEstimator::runOptimization() {
 
     // 首先是滑窗帧pose和bias到优化变量
     for (int i = 0; i < frame_count + 1; i++) {
-        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
-        problem.AddParameterBlock(para_Pose_[i], SIZE_POSE, local_parameterization);
+        ceres::Manifold *manifold = new PoseManifold();
+        problem.AddParameterBlock(para_Pose_[i], SIZE_POSE, manifold);
+        // ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
+        // problem.AddParameterBlock(para_Pose_[i], SIZE_POSE, local_parameterization);
         if(USE_IMU) {
             problem.AddParameterBlock(para_Speed_Bias_[i], SIZE_SPEEDBIAS);
         }
@@ -855,8 +857,10 @@ void VinsEstimator::runOptimization() {
 
     // 添加外参到优化变量，若未启用外参估计或激励不足，则设为常量
     for (int i = 0; i < NUM_OF_CAM; i++) {
-        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
-        problem.AddParameterBlock(para_Ex_Pose_[i], SIZE_POSE, local_parameterization);
+        ceres::Manifold *manifold = new PoseManifold();
+        problem.AddParameterBlock(para_Ex_Pose_[i], SIZE_POSE, manifold);
+        // ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
+        // problem.AddParameterBlock(para_Ex_Pose_[i], SIZE_POSE, local_parameterization);
         if ((ESTIMATE_EXTRINSIC && frame_count == WINDOW_SIZE && Vs[0].norm() > 0.2) || flag_open_extrin_esti_) {
             // LOG(INFO) << "estimate extinsic param ";
             flag_open_extrin_esti_ = 1;
