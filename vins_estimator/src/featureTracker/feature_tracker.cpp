@@ -93,11 +93,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
     */
 
 #ifdef LET_NET
-    cv::Mat img;
-    cv::Mat gray;
-    img = _img;
-    cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
-    letnetProcess(img);
+    letnetProcess(cur_img);
 #endif
 
     // 若非初始帧，则在前后帧（仅左目）之间进行常规的feature追踪
@@ -181,7 +177,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         }
 
         // subpixel refinement
-        cv::cornerSubPix(gray,
+        cv::cornerSubPix(cur_img,
                          cur_pts_,
                          cv::Size(3, 3),
                          cv::Size(-1, -1),
@@ -279,7 +275,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
                 new_pt_.y *= k_h;
             }
             // subpixel refinement
-            cv::cornerSubPix(gray,
+            cv::cornerSubPix(cur_img,
                              new_pts_,
                              cv::Size(3, 3),
                              cv::Size(-1, -1),
@@ -652,10 +648,10 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
     void FeatureTracker::letnetInit()
     {
         score_ = cv::Mat(LET_HEIGHT, LET_WIDTH, CV_32FC1);
-        desc_ = cv::Mat(LET_HEIGHT, LET_WIDTH, CV_8UC3);
-        last_desc_ = cv::Mat(LET_HEIGHT, LET_WIDTH, CV_8UC3);
-        net_.load_param(THIS_COM "/model/model.param");
-        net_.load_model(THIS_COM "/model/model.bin");
+        desc_ = cv::Mat(LET_HEIGHT, LET_WIDTH, CV_8UC1);
+        last_desc_ = cv::Mat(LET_HEIGHT, LET_WIDTH, CV_8UC1);
+        net_.load_param(THIS_COM "/model/model_gray.param");
+        net_.load_model(THIS_COM "/model/model_gray.bin");
     }
 
     void FeatureTracker::letnetProcess(const cv::Mat &imageBgr)
@@ -666,22 +662,22 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         ncnn::Extractor ex = net_.create_extractor();
         ex.set_light_mode(true);
         // opencv to ncnn
-        ncnn::Mat ncnn_in = ncnn::Mat::from_pixels(img.data, ncnn::Mat::PIXEL_BGR, img.cols, img.rows);
+        ncnn::Mat ncnn_in = ncnn::Mat::from_pixels(img.data, ncnn::Mat::PIXEL_GRAY, img.cols, img.rows);
         ncnn_in.substract_mean_normalize(mean_vals, norm_vals);
+
         // extract
         ncnn::Mat ncnn_score, ncnn_desc;
-        ex.input("input", ncnn_in);
-        ex.extract("score", ncnn_score);
-        ex.extract("descriptor", ncnn_desc);
+        ex.input("in0", ncnn_in);
+        ex.extract("out0", ncnn_score);
+        ex.extract("out1", ncnn_desc);
+        
         // ncnn to opencv
         ncnn_score.substract_mean_normalize(mean_vals_inv, norm_vals_inv);
         ncnn_desc.substract_mean_normalize(mean_vals_inv, norm_vals_inv);
 
         // out1.to_pixels(score.data, ncnn::Mat::PIXEL_GRAY);
         memcpy((unsigned char *)score_.data, ncnn_score.data, LET_HEIGHT * LET_WIDTH * sizeof(float));
-        cv::Mat desc_tmp(LET_HEIGHT, LET_WIDTH, CV_8UC3);
-        ncnn_desc.to_pixels(desc_tmp.data, ncnn::Mat::PIXEL_BGR);
-        desc_ = desc_tmp.clone();
+        ncnn_desc.to_pixels(desc_.data, ncnn::Mat::PIXEL_GRAY);
         // cv::imwrite("desc.png", desc);
     }
 
@@ -701,6 +697,8 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         // 图像，最小值，最大值，最小值指针，最大值指针
         cv::minMaxLoc(eig, 0, &maxVal, 0, 0, _mask); // 获取最大值
         // 基于maxVal * qualityLevel二值化，获取大于maxVal * qualityLevel的像素
+        // 所有大于maxVal * qualityLevel的都为候选点，这里qualityLevel设置得很小，
+        // 实际基本所有非0点都为候选点
         cv::threshold(eig, eig, maxVal * qualityLevel, 0, cv::THRESH_TOZERO);
         // 膨胀
         cv::dilate(eig, tmp, cv::Mat());

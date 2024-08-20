@@ -149,8 +149,8 @@ class FeatureTracker {
     ncnn::Net net_;
     cv::Mat score_;
     cv::Mat desc_, last_desc_;
-    const float mean_vals[3] = {0, 0, 0};
-    const float norm_vals[3] = {1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0};
-    const float mean_vals_inv[3] = {0, 0, 0};
-    const float norm_vals_inv[3] = {255.f, 255.f, 255.f};
+    const float mean_vals[1] = {0};
+    const float norm_vals[1] = {1.0 / 255.0};
+    const float mean_vals_inv[1] = {0};
+    const float norm_vals_inv[1] = {255.f};
 };

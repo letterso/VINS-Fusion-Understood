@@ -23,6 +23,7 @@
 
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
 
 #include "estimator/estimator.h"
 #include "estimator/parameters.h"
@@ -59,9 +60,6 @@ void Image1Callback(const sensor_msgs::ImageConstPtr &img_msg) {
 
 cv::Mat RosMsgToCvMat(const sensor_msgs::ImageConstPtr &img_msg) {
     cv_bridge::CvImageConstPtr ptr;
-#ifdef LET_NET
-    ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::BGR8);
-#else
     if (img_msg->encoding == "8UC1") {
         sensor_msgs::Image img;
         img.header = img_msg->header;
@@ -75,7 +73,6 @@ cv::Mat RosMsgToCvMat(const sensor_msgs::ImageConstPtr &img_msg) {
     } else {
         ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::MONO8);
     }
-#endif
     cv::Mat cv_img = ptr->image.clone();
     return cv_img;
 }
@@ -294,10 +291,16 @@ int main(int argc, char **argv) {
         sub_imu = nh_.subscribe(IMU_TOPIC, 2000, ImuCallback, ros::TransportHints().tcpNoDelay());
     }
     ros::Subscriber sub_feature = nh_.subscribe("/feature_tracker/feature", 2000, FeatureCallback);
-    ros::Subscriber sub_img0 = nh_.subscribe(IMAGE0_TOPIC, 100, Image0Callback);
-    ros::Subscriber sub_img1;
+
+    image_transport::ImageTransport it_(nh_);
+    image_transport::Subscriber sub_img0 = it_.subscribe(IMAGE0_TOPIC, 100, Image0Callback);
+    // ros::Subscriber sub_img0 = nh_.subscribe(IMAGE0_TOPIC, 100, Image0Callback);
+
+    // ros::Subscriber sub_img1;
+    image_transport::Subscriber sub_img1;
     if(STEREO) {
-        sub_img1 = nh_.subscribe(IMAGE1_TOPIC, 100, Image1Callback);
+        sub_img1 = it_.subscribe(IMAGE1_TOPIC, 100, Image1Callback);
+        // sub_img1 = nh_.subscribe(IMAGE1_TOPIC, 100, Image1Callback);
     }
     ros::Subscriber sub_restart = nh_.subscribe("/vins_restart", 100, RestartCallback);
     ros::Subscriber sub_imu_switch = nh_.subscribe("/vins_imu_switch", 100, ImuSwitchCallback);
