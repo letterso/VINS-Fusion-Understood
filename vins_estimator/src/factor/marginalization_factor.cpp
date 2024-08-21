@@ -9,6 +9,8 @@
 
 #include "marginalization_factor.h"
 
+#include <tbb/tbb.h>
+
 namespace {
 
 void* ThreadsConstructA(void* threadsstruct) {
@@ -142,18 +144,27 @@ void MarginalizationManager::addResidualBlockInfo(ResidualBlockInfo* residual_bl
 }
 
 void MarginalizationManager::preMarginalize() {
-    for (auto it : factors_) {
-        //在当前线性化点计算残差和jacobian
-        it->Evaluate();
+    // 并行计算
+    auto preparation_function = [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t k = range.begin(); k != range.end(); k++) {
+            const auto &factor = factors_[k];
+            //在当前线性化点计算残差和jacobian
+            factor->Evaluate();
+        }
+    };
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, factors_.size()), preparation_function);
 
-        //就是把（所有的）参数块深拷贝一下
-        std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
-        for (int i = 0; i < static_cast<int>(block_sizes.size()); i++) {
-            long addr = reinterpret_cast<long>(it->parameter_blocks[i]);
+    // 涉及修改 parameter_block_data_
+    for (const auto &factor : factors_) {
+        std::vector<int> block_sizes = factor->cost_function->parameter_block_sizes();
+        for (size_t i = 0; i < block_sizes.size(); i++) {
+            long addr = reinterpret_cast<long>(factor->parameter_blocks[i]);
             int size = block_sizes[i];
+
+            // 拷贝参数块数据
             if (parameter_block_data_.find(addr) == parameter_block_data_.end()) {
-                double* data = new double[size];
-                memcpy(data, it->parameter_blocks[i], sizeof(double) * size);
+                double *data = new double[size];
+                memcpy(data, factor->parameter_blocks[i], sizeof(double) * size);
                 parameter_block_data_[addr] = data;
             }
         }
@@ -197,70 +208,69 @@ void MarginalizationManager::marginalize() {
         return;
     }
 
-    TicToc t_sum_up;
     Eigen::MatrixXd A(posi, posi);
     Eigen::VectorXd b(posi);
     A.setZero();
     b.setZero();
 
-    // ########## single-thread ##########
-    /*
-    for (auto it : factors_) {
-        for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++) {
-            int idx_i = parameter_block_idx_[reinterpret_cast<long>(it->parameter_blocks[i])];
-            int size_i = localSize(parameter_block_sizes_[reinterpret_cast<long>(it->parameter_blocks[i])]);
-            Eigen::MatrixXd jacobian_i = it->jacobians[i].leftCols(size_i);
-            for (int j = i; j < static_cast<int>(it->parameter_blocks.size()); j++) {
-                int idx_j = parameter_block_idx_[reinterpret_cast<long>(it->parameter_blocks[j])];
-                int size_j = localSize(parameter_block_sizes_[reinterpret_cast<long>(it->parameter_blocks[j])]);
-                Eigen::MatrixXd jacobian_j = it->jacobians[j].leftCols(size_j);
-                if (i == j)
-                    A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
-                else
-                {
-                    A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
-                    A.block(idx_j, idx_i, size_j, size_i) = A.block(idx_i, idx_j, size_i, size_j).transpose();
+    if (factors_.size() < NUM_THREADS) {
+        // ########## single-thread ##########
+        for (auto it : factors_) {
+            for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++) {
+                int idx_i = parameter_block_idx_[reinterpret_cast<long>(it->parameter_blocks[i])];
+                int size_i = localSize(parameter_block_sizes_[reinterpret_cast<long>(it->parameter_blocks[i])]);
+                Eigen::MatrixXd jacobian_i = it->jacobians[i].leftCols(size_i);
+                for (int j = i; j < static_cast<int>(it->parameter_blocks.size()); j++) {
+                    int idx_j = parameter_block_idx_[reinterpret_cast<long>(it->parameter_blocks[j])];
+                    int size_j = localSize(parameter_block_sizes_[reinterpret_cast<long>(it->parameter_blocks[j])]);
+                    Eigen::MatrixXd jacobian_j = it->jacobians[j].leftCols(size_j);
+                    if (i == j)
+                        A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
+                    else
+                    {
+                        A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
+                        A.block(idx_j, idx_i, size_j, size_i) = A.block(idx_i, idx_j, size_i, size_j).transpose();
+                    }
                 }
+                b.segment(idx_i, size_i) += jacobian_i.transpose() * it->residuals;
             }
-            b.segment(idx_i, size_i) += jacobian_i.transpose() * it->residuals;
         }
-    }
-    ROS_INFO("summing up costs %f ms", t_sum_up.toc());
-    */
-
-    // ########## multi-thread ##########
-    TicToc t_thread_summing;
-    pthread_t tids[NUM_THREADS];
-    ThreadsStruct threaded_tasks[NUM_THREADS];
-    int i = 0;
-    for (auto it : factors_) {
+    } else {
+      // ########## multi-thread ##########
+      TicToc t_thread_summing;
+      pthread_t tids[NUM_THREADS];
+      ThreadsStruct threaded_tasks[NUM_THREADS];
+      int i = 0;
+      for (auto it : factors_) {
         threaded_tasks[i].sub_factors.push_back(it);
         i++;
         i = i % NUM_THREADS;
-    }
-    for (int i = 0; i < NUM_THREADS; i++) {
+      }
+      for (int i = 0; i < NUM_THREADS; i++) {
         TicToc zero_matrix;
         //把A和b的size设置对了，后边各个线程中计算时，只管往正确的位置填结果即可
         threaded_tasks[i].A = Eigen::MatrixXd::Zero(posi, posi);
         threaded_tasks[i].b = Eigen::VectorXd::Zero(posi);
         threaded_tasks[i].parameter_block_size = parameter_block_sizes_;
         threaded_tasks[i].parameter_block_idx = parameter_block_idx_;
-        int ret = pthread_create( &tids[i], NULL, ThreadsConstructA ,(void*)&(threaded_tasks[i]));
+        int ret = pthread_create(&tids[i], NULL, ThreadsConstructA,
+                                 (void *)&(threaded_tasks[i]));
         if (ret != 0) {
-            LOG(ERROR) << ("pthread_create error");
-            assert(0);
+          LOG(ERROR) << ("pthread_create error");
+          assert(0);
         }
-    }
+      }
 
-    // ########## sum up all A&b ##########
-    for( int i = NUM_THREADS - 1; i >= 0; i--) {
+      // ########## sum up all A&b ##########
+      for (int i = NUM_THREADS - 1; i >= 0; i--) {
         //等待线程执行完毕，获取结果
-        pthread_join( tids[i], NULL ); 
+        pthread_join(tids[i], NULL);
         A += threaded_tasks[i].A;
         b += threaded_tasks[i].b;
+      }
+      // printf("thread summing up costs %f ms", t_thread_summing.toc());
+      // printf("A diff %f , b diff %f ", (A - tmp_A).sum(), (b - tmp_b).sum());
     }
-    //printf("thread summing up costs %f ms", t_thread_summing.toc());
-    //printf("A diff %f , b diff %f ", (A - tmp_A).sum(), (b - tmp_b).sum());
 
     // ########## compute Schur Complement ##########
 

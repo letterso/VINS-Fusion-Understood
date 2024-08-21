@@ -20,7 +20,7 @@
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 
-const int NUM_THREADS = 4;  //计算hessian时的并发加速多线程数量
+const int NUM_THREADS = 16;  //计算hessian时的并发加速多线程数量
 
 
 /// @brief 边缘化操作中的一个因子，我们需要对因子计算残差和雅可比，这些事情用这个结构体来维护
