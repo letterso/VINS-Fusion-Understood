@@ -667,9 +667,9 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
 
         // extract
         ncnn::Mat ncnn_score, ncnn_desc;
-        ex.input("in0", ncnn_in);
-        ex.extract("out0", ncnn_score);
-        ex.extract("out1", ncnn_desc);
+        ex.input("input", ncnn_in);
+        ex.extract("score", ncnn_score);
+        ex.extract("descriptor", ncnn_desc);
         
         // ncnn to opencv
         ncnn_score.substract_mean_normalize(mean_vals_inv, norm_vals_inv);
